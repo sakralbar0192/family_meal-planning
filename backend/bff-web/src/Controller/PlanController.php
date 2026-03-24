@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Controller;
+
+use App\Bff\InternalApiClient;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class PlanController extends BaseProxyController
+{
+    public function __construct(
+        private readonly InternalApiClient $internalApiClient,
+        private readonly string $planningBaseUri,
+    ) {
+    }
+
+    #[Route('/bff/v1/plan/slots/{slotId}', name: 'bff_patch_slot', methods: ['PATCH'])]
+    public function patchSlot(string $slotId, Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = $request->toArray();
+        $upstream = $this->internalApiClient->patch($request, $this->planningBaseUri, '/slots/'.$slotId, $payload);
+
+        return $this->toJsonResponse($upstream);
+    }
+}

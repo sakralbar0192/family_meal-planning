@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    app.internal_auth_token: '%env(INTERNAL_AUTH_TOKEN)%'
+    app.iam_base_uri: '%env(IAM_BASE_URI)%'
+    app.import_base_uri: '%env(IMPORT_BASE_URI)%'
+    app.catalog_base_uri: '%env(CATALOG_BASE_URI)%'
+    app.planning_base_uri: '%env(PLANNING_BASE_URI)%'
+    app.shopping_base_uri: '%env(SHOPPING_BASE_URI)%'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    App\Bff\InternalApiClient:
+        arguments:
+            $internalAuth: '%app.internal_auth_token%'
+
+    App\Bff\SessionGuardSubscriber:
+        arguments:
+            $iamBaseUri: '%app.iam_base_uri%'
+            $internalAuth: '%app.internal_auth_token%'
+
+    App\Controller\AuthController:
+        arguments:
+            $iamBaseUri: '%app.iam_base_uri%'
+
+    App\Controller\ImportController:
+        arguments:
+            $importBaseUri: '%app.import_base_uri%'
+
+    App\Controller\RecipesController:
+        arguments:
+            $catalogBaseUri: '%app.catalog_base_uri%'
+
+    App\Controller\PlanController:
+        arguments:
+            $planningBaseUri: '%app.planning_base_uri%'
+
+    App\Controller\ShoppingController:
+        arguments:
+            $shoppingBaseUri: '%app.shopping_base_uri%'
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones

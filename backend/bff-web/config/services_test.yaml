@@ -1,0 +1,5 @@
+services:
+    App\Tests\Double\FakeUpstreamHttpClient:
+        public: true
+
+    Symfony\Contracts\HttpClient\HttpClientInterface: '@App\Tests\Double\FakeUpstreamHttpClient'

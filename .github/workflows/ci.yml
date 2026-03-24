@@ -43,18 +43,22 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-  # When PHP services land: enable and set working-directory / composer paths
-  # php-unit:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: shivammathur/setup-php@v2
-  #       with:
-  #         php-version: "8.3"
-  #         coverage: pcov
-  #     - run: composer install
-  #     - run: composer test
-  #     - run: composer exec phpunit -- --coverage-text --coverage-filter=src --min-coverage=80
+  bff-web:
+    name: BFF Web (Symfony PHPUnit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/bff-web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run test suite
+        run: php bin/phpunit
 
   # When Go services land:
   # go-test:
