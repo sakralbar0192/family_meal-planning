@@ -109,16 +109,94 @@ jobs:
       - name: Run test suite
         run: php bin/phpunit
 
-  # When Go services land:
-  # go-test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-go@v5
-  #       with:
-  #         go-version: "1.22"
-  #     - run: go test ./... -coverprofile=coverage.out -covermode=atomic
-  #     - run: go tool cover -func=coverage.out | tail -1
+  recipe-catalog:
+    name: Recipe catalog (Symfony + Postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/recipe-catalog
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: catalog
+          POSTGRES_USER: catalog
+          POSTGRES_PASSWORD: catalog
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U catalog -d catalog"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      APP_ENV: test
+      APP_SECRET: ci-secret
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      CATALOG_DATABASE_DSN: pgsql:host=127.0.0.1;port=5432;dbname=catalog
+      CATALOG_DATABASE_USER: catalog
+      CATALOG_DATABASE_PASSWORD: catalog
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: php bin/phpunit
+
+  shopping-list:
+    name: Shopping list (Symfony + Postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/shopping-list
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: shopping
+          POSTGRES_USER: shopping
+          POSTGRES_PASSWORD: shopping
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U shopping -d shopping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      APP_ENV: test
+      APP_SECRET: ci-secret
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      SHOPPING_DATABASE_DSN: pgsql:host=127.0.0.1;port=5432;dbname=shopping
+      SHOPPING_DATABASE_USER: shopping
+      SHOPPING_DATABASE_PASSWORD: shopping
+      PLANNING_BASE_URI: http://127.0.0.1:59999/api/planning/v1
+      CATALOG_BASE_URI: http://127.0.0.1:59998/api/catalog/v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: php bin/phpunit
+
+  go-services:
+    name: Go services (recipe-import, meal-planning)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: recipe-import
+        working-directory: backend/recipe-import
+        run: go test ./...
+      - name: meal-planning
+        working-directory: backend/meal-planning
+        run: go test ./...
 
   e2e:
     name: E2E (Playwright placeholder)

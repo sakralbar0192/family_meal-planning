@@ -15,6 +15,54 @@ services:
     volumes:
       - postgres-iam-data:/var/lib/postgresql/data
 
+  postgres-catalog:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: catalog
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog -d catalog"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-catalog-data:/var/lib/postgresql/data
+
+  postgres-planning:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: planning
+      POSTGRES_USER: planning
+      POSTGRES_PASSWORD: planning
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planning -d planning"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-planning-data:/var/lib/postgresql/data
+
+  postgres-shopping:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: shopping
+      POSTGRES_USER: shopping
+      POSTGRES_PASSWORD: shopping
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopping -d shopping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-shopping-data:/var/lib/postgresql/data
+
   redis-iam:
     image: redis:7-alpine
     ports:
@@ -45,5 +93,90 @@ services:
     ports:
       - "28081:8081"
 
+  recipe-catalog:
+    build:
+      context: ../backend/recipe-catalog
+    depends_on:
+      postgres-catalog:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      APP_SECRET: dev-secret
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      CATALOG_DATABASE_DSN: pgsql:host=postgres-catalog;port=5432;dbname=catalog
+      CATALOG_DATABASE_USER: catalog
+      CATALOG_DATABASE_PASSWORD: catalog
+    ports:
+      - "8082:8082"
+
+  recipe-import:
+    build:
+      context: ../backend/recipe-import
+    environment:
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      LISTEN_ADDR: ":8083"
+      IMPORT_ALLOWED_HOSTS: "127.0.0.1,localhost,example.com,www.example.com"
+    ports:
+      - "8083:8083"
+
+  meal-planning:
+    build:
+      context: ../backend/meal-planning
+    depends_on:
+      postgres-planning:
+        condition: service_healthy
+    environment:
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      LISTEN_ADDR: ":8084"
+      PLANNING_DATABASE_URL: postgres://planning:planning@postgres-planning:5432/planning?sslmode=disable
+    ports:
+      - "8084:8084"
+
+  shopping-list:
+    build:
+      context: ../backend/shopping-list
+    depends_on:
+      postgres-shopping:
+        condition: service_healthy
+      meal-planning:
+        condition: service_started
+      recipe-catalog:
+        condition: service_started
+    environment:
+      APP_ENV: dev
+      APP_SECRET: dev-secret
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      SHOPPING_DATABASE_DSN: pgsql:host=postgres-shopping;port=5432;dbname=shopping
+      SHOPPING_DATABASE_USER: shopping
+      SHOPPING_DATABASE_PASSWORD: shopping
+      PLANNING_BASE_URI: http://meal-planning:8084/api/planning/v1
+      CATALOG_BASE_URI: http://recipe-catalog:8082/api/catalog/v1
+    ports:
+      - "8085:8085"
+
+  bff-web:
+    build:
+      context: ../backend/bff-web
+    depends_on:
+      - identity-access
+      - recipe-catalog
+      - recipe-import
+      - meal-planning
+      - shopping-list
+    environment:
+      APP_ENV: dev
+      APP_SECRET: dev-secret
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      IAM_BASE_URI: http://identity-access:8081/api/iam/v1
+      IMPORT_BASE_URI: http://recipe-import:8083/api/import/v1
+      CATALOG_BASE_URI: http://recipe-catalog:8082/api/catalog/v1
+      PLANNING_BASE_URI: http://meal-planning:8084/api/planning/v1
+      SHOPPING_BASE_URI: http://shopping-list:8085/api/shopping/v1
+    ports:
+      - "8080:8080"
+
 volumes:
   postgres-iam-data:
+  postgres-catalog-data:
+  postgres-planning-data:
+  postgres-shopping-data:

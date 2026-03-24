@@ -65,4 +65,26 @@ final class InternalApiClientTest extends TestCase
         );
         self::assertStringContainsString('"url":"https:\\/\\/example.com"', (string) ($capturedOptions['options']['body'] ?? ''));
     }
+
+    public function testGetAppendsQueryString(): void
+    {
+        $capturedUrl = null;
+        $httpClient = new MockHttpClient(function (string $method, string $url) use (&$capturedUrl) {
+            $capturedUrl = $url;
+
+            return new MockResponse('{}', ['http_code' => 200]);
+        });
+
+        $client = new InternalApiClient($httpClient, 't');
+        $request = Request::create('/bff/v1/plan/week');
+        $client->get($request, 'http://plan/api/v1', '/week-plans/current', [
+            'anchorDate' => '2026-03-02',
+            'recipeSearch' => 'soup',
+        ]);
+
+        self::assertSame(
+            'http://plan/api/v1/week-plans/current?anchorDate=2026-03-02&recipeSearch=soup',
+            $capturedUrl
+        );
+    }
 }

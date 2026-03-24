@@ -106,4 +106,33 @@ final class BffFlowTest extends WebTestCase
         $body = \json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('77abf34d-8dc0-4442-9f54-23fb65fb7cf6', $body['listId']);
     }
+
+    public function testGetWeekPlanProxiesWithQueryString(): void
+    {
+        FakeUpstreamHttpClient::queueResponses([
+            [
+                'method' => 'GET',
+                'url' => 'http://localhost:8081/api/iam/v1/sessions/sess-123',
+                'status' => 200,
+                'body' => '{"userId":"24f74de4-a50f-4eb4-b336-44f10a158ad4"}',
+            ],
+            [
+                'method' => 'GET',
+                'url' => 'http://localhost:8084/api/planning/v1/week-plans/current?anchorDate=2026-03-02&recipeSearch=tomato',
+                'status' => 200,
+                'body' => '{"weekStart":"2026-03-02","weekEnd":"2026-03-08","slots":[]}',
+            ],
+        ]);
+
+        $client = static::createClient();
+        $client->getCookieJar()->set(new Cookie('session_id', 'sess-123'));
+        $client->request(
+            'GET',
+            '/bff/v1/plan/week?anchorDate=2026-03-02&recipeSearch=tomato'
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        $body = \json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('2026-03-02', $body['weekStart']);
+    }
 }

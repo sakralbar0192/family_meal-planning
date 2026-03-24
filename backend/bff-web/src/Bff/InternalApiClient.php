@@ -19,7 +19,7 @@ final class InternalApiClient
      */
     public function post(Request $request, string $baseUri, string $path, array $body): ResponseInterface
     {
-        return $this->request($request, 'POST', $baseUri, $path, ['json' => $body]);
+        return $this->request($request, 'POST', $baseUri, $path, ['json' => $body], []);
     }
 
     /**
@@ -27,23 +27,27 @@ final class InternalApiClient
      */
     public function patch(Request $request, string $baseUri, string $path, array $body): ResponseInterface
     {
-        return $this->request($request, 'PATCH', $baseUri, $path, ['json' => $body]);
+        return $this->request($request, 'PATCH', $baseUri, $path, ['json' => $body], []);
     }
 
-    public function get(Request $request, string $baseUri, string $path): ResponseInterface
+    /**
+     * @param array<string, string|int|float|bool|null> $query
+     */
+    public function get(Request $request, string $baseUri, string $path, array $query = []): ResponseInterface
     {
-        return $this->request($request, 'GET', $baseUri, $path, []);
+        return $this->request($request, 'GET', $baseUri, $path, [], $query);
     }
 
     public function delete(Request $request, string $baseUri, string $path): ResponseInterface
     {
-        return $this->request($request, 'DELETE', $baseUri, $path, []);
+        return $this->request($request, 'DELETE', $baseUri, $path, [], []);
     }
 
     /**
      * @param array<string, mixed> $options
+     * @param array<string, string|int|float|bool|null> $query
      */
-    private function request(Request $request, string $method, string $baseUri, string $path, array $options): ResponseInterface
+    private function request(Request $request, string $method, string $baseUri, string $path, array $options, array $query = []): ResponseInterface
     {
         $headers = [
             'X-Internal-Auth' => $this->internalAuth,
@@ -61,6 +65,20 @@ final class InternalApiClient
 
         $options['headers'] = $headers;
 
-        return $this->httpClient->request($method, \rtrim($baseUri, '/').'/'.\ltrim($path, '/'), $options);
+        $url = \rtrim($baseUri, '/').'/'.\ltrim($path, '/');
+        if ($query !== []) {
+            $filtered = [];
+            foreach ($query as $k => $v) {
+                if ($v === null || $v === '') {
+                    continue;
+                }
+                $filtered[$k] = $v;
+            }
+            if ($filtered !== []) {
+                $url .= '?'.http_build_query($filtered);
+            }
+        }
+
+        return $this->httpClient->request($method, $url, $options);
     }
 }

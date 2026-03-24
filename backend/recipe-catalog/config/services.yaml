@@ -1,0 +1,23 @@
+parameters:
+    app.internal_auth_token: '%env(INTERNAL_AUTH_TOKEN)%'
+    app.db_dsn: '%env(CATALOG_DATABASE_DSN)%'
+    app.db_user: '%env(CATALOG_DATABASE_USER)%'
+    app.db_password: '%env(CATALOG_DATABASE_PASSWORD)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+
+    App\Catalog\Database:
+        arguments:
+            $dsn: '%app.db_dsn%'
+            $user: '%app.db_user%'
+            $password: '%app.db_password%'
+
+    App\Catalog\InternalAuthSubscriber:
+        arguments:
+            $internalAuthToken: '%app.internal_auth_token%'

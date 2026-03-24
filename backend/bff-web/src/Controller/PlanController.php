@@ -15,6 +15,21 @@ final class PlanController extends BaseProxyController
     ) {
     }
 
+    #[Route('/bff/v1/plan/week', name: 'bff_plan_week', methods: ['GET'])]
+    public function week(Request $request): JsonResponse
+    {
+        $query = [];
+        foreach (['anchorDate', 'focusDate', 'recipeSearch'] as $key) {
+            if ($request->query->has($key)) {
+                $query[$key] = $request->query->get($key);
+            }
+        }
+
+        $upstream = $this->internalApiClient->get($request, $this->planningBaseUri, '/week-plans/current', $query);
+
+        return $this->toJsonResponse($upstream);
+    }
+
     #[Route('/bff/v1/plan/slots/{slotId}', name: 'bff_patch_slot', methods: ['PATCH'])]
     public function patchSlot(string $slotId, Request $request): JsonResponse
     {

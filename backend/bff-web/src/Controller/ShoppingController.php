@@ -32,4 +32,41 @@ final class ShoppingController extends BaseProxyController
 
         return $this->toJsonResponse($upstream);
     }
+
+    #[Route('/bff/v1/shopping/lists/{listId}/lines', name: 'bff_shopping_add_line', methods: ['POST'])]
+    public function addLine(string $listId, Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = $request->toArray();
+        $upstream = $this->internalApiClient->post($request, $this->shoppingBaseUri, '/lists/'.$listId.'/lines', $payload);
+
+        return $this->toJsonResponse($upstream);
+    }
+
+    #[Route('/bff/v1/shopping/lists/{listId}/lines/{lineId}', name: 'bff_shopping_patch_line', methods: ['PATCH'])]
+    public function patchLine(string $listId, string $lineId, Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = $request->toArray();
+        $upstream = $this->internalApiClient->patch(
+            $request,
+            $this->shoppingBaseUri,
+            '/lists/'.$listId.'/lines/'.$lineId,
+            $payload
+        );
+
+        return $this->toJsonResponse($upstream);
+    }
+
+    #[Route('/bff/v1/shopping/lists/{listId}/lines/{lineId}', name: 'bff_shopping_delete_line', methods: ['DELETE'])]
+    public function deleteLine(string $listId, string $lineId, Request $request): JsonResponse
+    {
+        $upstream = $this->internalApiClient->delete(
+            $request,
+            $this->shoppingBaseUri,
+            '/lists/'.$listId.'/lines/'.$lineId
+        );
+
+        return $this->toJsonResponse($upstream);
+    }
 }
