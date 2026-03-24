@@ -63,6 +63,9 @@ jobs:
           if [ ! -f .env ]; then
             cp .env.dev .env
           fi
+          if ! grep -q '^DEFAULT_URI=' .env; then
+            echo 'DEFAULT_URI=http://localhost' >> .env
+          fi
       - name: Clean Symfony cache
         run: rm -rf var/cache/*
       - name: Install dependencies
