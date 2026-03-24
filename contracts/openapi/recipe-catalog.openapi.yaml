@@ -1,0 +1,367 @@
+openapi: 3.0.3
+info:
+  title: recipe-catalog API
+  description: >
+    CRUD личной библиотеки рецептов пользователя. Изоляция по X-User-Id (ADR 0001).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8082/api/catalog/v1
+    description: Локальная разработка
+tags:
+  - name: Health
+  - name: Recipes
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Зависимость недоступна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /recipes:
+    get:
+      tags: [Recipes]
+      summary: Список рецептов текущего пользователя
+      operationId: listRecipes
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Поиск по названию (частичное совпадение)
+        - name: mealCategory
+          in: query
+          schema:
+            type: string
+        - name: maxCookTimeMinutes
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Страница рецептов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeListResponse'
+        '401':
+          description: Нет доверенного пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    post:
+      tags: [Recipes]
+      summary: Создать рецепт (в т.ч. после редактирования черновика импорта)
+      operationId: createRecipe
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeCreate'
+      responses:
+        '201':
+          description: Создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '400':
+          description: Валидация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /recipes/{recipeId}:
+    parameters:
+      - $ref: '#/components/parameters/RecipeId'
+    get:
+      tags: [Recipes]
+      summary: Карточка рецепта
+      operationId: getRecipe
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '404':
+          description: Не найден или чужой
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    patch:
+      tags: [Recipes]
+      summary: Обновление рецепта
+      operationId: patchRecipe
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipePatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '400':
+          description: Валидация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    delete:
+      tags: [Recipes]
+      summary: Удаление рецепта
+      operationId: deleteRecipe
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '204':
+          description: Удалён
+        '404':
+          description: Не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+components:
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+    RecipeId:
+      name: recipeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    InternalAuth:
+      type: apiKey
+      in: header
+      name: X-Internal-Auth
+    TrustedUser:
+      type: apiKey
+      in: header
+      name: X-User-Id
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down]
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    Nutrition:
+      type: object
+      properties:
+        proteinG:
+          type: number
+        fatG:
+          type: number
+        carbsG:
+          type: number
+        calories:
+          type: number
+    Ingredient:
+      type: object
+      required: [name, productCategory]
+      properties:
+        name:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+          description: null — «по вкусу»
+        unit:
+          type: string
+          description: Единица измерения (г, мл, шт. …)
+        productCategory:
+          type: string
+          description: Категория продукта для списка покупок
+    RecipeCreate:
+      type: object
+      required: [title, ingredients]
+      properties:
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+          minimum: 0
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        sourceUrl:
+          type: string
+          format: uri
+          description: Если сохранён после импорта
+    RecipePatch:
+      type: object
+      properties:
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+          minimum: 0
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        sourceUrl:
+          type: string
+          format: uri
+    Recipe:
+      type: object
+      required: [id, title, ingredients, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        sourceUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RecipeSummary:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+    RecipeListResponse:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeSummary'
+        total:
+          type: integer
+          minimum: 0

@@ -1,0 +1,276 @@
+openapi: 3.0.3
+info:
+  title: identity-access API
+  description: >
+    Регистрация, вход, сессии (Redis), смена пароля. Вызывается BFF и не публикуется в браузер напрямую.
+    Доверенные заголовки — только из приватной сети (см. ADR 0001).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081/api/iam/v1
+    description: Локальная разработка (см. solution-architecture.md)
+tags:
+  - name: Health
+  - name: Users
+  - name: Sessions
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Зависимость недоступна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /users/register:
+    post:
+      tags: [Users]
+      summary: Регистрация email/пароль
+      operationId: registerUser
+      security:
+        - InternalAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '409':
+          description: Email уже занят
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /sessions:
+    post:
+      tags: [Sessions]
+      summary: Создать сессию (вход)
+      operationId: createSession
+      security:
+        - InternalAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Сессия создана; BFF устанавливает httpOnly cookie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionCreatedResponse'
+        '401':
+          description: Неверные учётные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /sessions/{sessionId}:
+    get:
+      tags: [Sessions]
+      summary: Проверка сессии (BFF)
+      operationId: getSession
+      security:
+        - InternalAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Сессия действительна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionValidResponse'
+        '404':
+          description: Сессия не найдена или истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    delete:
+      tags: [Sessions]
+      summary: Инвалидация сессии (выход)
+      operationId: deleteSession
+      security:
+        - InternalAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Сессия удалена
+        '404':
+          description: Сессия не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /users/me/password:
+    patch:
+      tags: [Users]
+      summary: Смена пароля
+      operationId: changePassword
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Пароль обновлён
+        '400':
+          description: Неверный текущий пароль или валидация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+components:
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    InternalAuth:
+      type: apiKey
+      in: header
+      name: X-Internal-Auth
+    TrustedUser:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: UUID пользователя после валидации сессии BFF
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down]
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: Политика сложности — на стороне реализации
+    RegisterResponse:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+          format: uuid
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    SessionCreatedResponse:
+      type: object
+      required: [sessionId, userId, expiresAt]
+      properties:
+        sessionId:
+          type: string
+          description: Идентификатор для cookie session_id (BFF)
+        userId:
+          type: string
+          format: uuid
+        expiresAt:
+          type: string
+          format: date-time
+    SessionValidResponse:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+          format: uuid
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8

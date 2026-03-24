@@ -19,8 +19,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Validate template spec
-        run: npx --yes @apidevtools/swagger-cli validate contracts/openapi/template-service.yaml
+      - name: Validate OpenAPI specs
+        run: |
+          set -e
+          for f in contracts/openapi/*.yaml; do
+            echo "Validating $f"
+            npx --yes @apidevtools/swagger-cli validate "$f"
+          done
 
   frontend:
     name: Frontend build (Vue 3 / workspaces)

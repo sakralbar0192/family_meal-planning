@@ -1,0 +1,174 @@
+openapi: 3.0.3
+info:
+  title: recipe-import API
+  description: >
+    Парсинг URL с whitelist сайтов; возвращает черновик рецепта без записи в каталог (ADR 0003).
+    Таймауты и отмена — на стороне gateway/BFF.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8083/api/import/v1
+    description: Локальная разработка
+tags:
+  - name: Health
+  - name: Import
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Зависимость недоступна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /imports/url:
+    post:
+      tags: [Import]
+      summary: Импорт по URL → черновик
+      operationId: importByUrl
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportUrlRequest'
+      responses:
+        '200':
+          description: Черновик готов к редактированию на клиенте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeDraft'
+        '400':
+          description: URL не с whitelist или невалиден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '422':
+          description: Не удалось разобрать страницу
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '504':
+          description: Таймаут загрузки источника
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+components:
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    InternalAuth:
+      type: apiKey
+      in: header
+      name: X-Internal-Auth
+    TrustedUser:
+      type: apiKey
+      in: header
+      name: X-User-Id
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down]
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    ImportUrlRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+    Nutrition:
+      type: object
+      properties:
+        proteinG:
+          type: number
+        fatG:
+          type: number
+        carbsG:
+          type: number
+        calories:
+          type: number
+    IngredientDraft:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+        productCategory:
+          type: string
+    RecipeDraft:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientDraft'
+        sourceUrl:
+          type: string
+          format: uri
+        imageUrl:
+          type: string
+          format: uri
+          description: Если извлечено со страницы

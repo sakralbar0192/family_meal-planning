@@ -1,0 +1,917 @@
+openapi: 3.0.3
+info:
+  title: BFF Web API
+  description: >
+    Единая точка входа для браузера (Vue host + remotes). Префикс `/bff/v1`.
+    Клиент всегда с `credentials: 'include'`. BFF валидирует cookie, проставляет
+    X-Correlation-Id и X-User-Id при вызовах микросервисов (ADR 0001).
+    См. также [bff-routes.md](../bff-routes.md).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/bff/v1
+    description: Локальная разработка (bff-web)
+tags:
+  - name: Health
+  - name: Auth
+  - name: Recipes
+  - name: Import
+  - name: Plan
+  - name: Shopping
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Готовность BFF
+      operationId: bffHealth
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Регистрация
+      operationId: bffRegister
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Создан пользователь (без автологина — опционально расширить)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Вход, Set-Cookie session_id (httpOnly)
+      operationId: bffLogin
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успех; заголовок Set-Cookie
+          headers:
+            Set-Cookie:
+              description: session_id=…; HttpOnly; Path=/; SameSite=Lax
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Error'
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Выход, инвалидация сессии
+      operationId: bffLogout
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '204':
+          description: Сессия сброшена
+        '401':
+          $ref: '#/components/responses/Error'
+  /auth/password:
+    post:
+      tags: [Auth]
+      summary: Смена пароля (тело как в IAM)
+      operationId: bffChangePassword
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: OK
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+  /recipes:
+    get:
+      tags: [Recipes]
+      summary: Список рецептов
+      operationId: bffListRecipes
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: mealCategory
+          in: query
+          schema:
+            type: string
+        - name: maxCookTimeMinutes
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeListResponse'
+        '401':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [Recipes]
+      summary: Создать рецепт
+      operationId: bffCreateRecipe
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeCreate'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+  /recipes/{recipeId}:
+    parameters:
+      - $ref: '#/components/parameters/RecipeId'
+    get:
+      tags: [Recipes]
+      summary: Карточка рецепта
+      operationId: bffGetRecipe
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [Recipes]
+      summary: Обновить рецепт
+      operationId: bffPatchRecipe
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipePatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Recipes]
+      summary: Удалить рецепт
+      operationId: bffDeleteRecipe
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '204':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /import/url:
+    post:
+      tags: [Import]
+      summary: Импорт по URL → черновик
+      operationId: bffImportUrl
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportUrlRequest'
+      responses:
+        '200':
+          description: Черновик
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeDraft'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '504':
+          $ref: '#/components/responses/Error'
+  /plan/week:
+    get:
+      tags: [Plan]
+      summary: План на неделю
+      operationId: bffGetWeekPlan
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: anchorDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: focusDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: recipeSearch
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeekPlanResponse'
+        '401':
+          $ref: '#/components/responses/Error'
+  /plan/slots/{slotId}:
+    patch:
+      tags: [Plan]
+      summary: Обновить слот
+      operationId: bffPatchSlot
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: slotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SlotPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotAssignment'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /shopping/build:
+    post:
+      tags: [Shopping]
+      summary: Сформировать список за период
+      operationId: bffShoppingBuild
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildListRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildListResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+  /shopping/lists/{listId}:
+    get:
+      tags: [Shopping]
+      summary: Детали списка
+      operationId: bffGetShoppingList
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListDetail'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /shopping/lists/{listId}/lines:
+    post:
+      tags: [Shopping]
+      summary: Добавить ручную строку (UC-3)
+      operationId: bffAddShoppingLine
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualLineCreate'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingLine'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /shopping/lists/{listId}/lines/{lineId}:
+    patch:
+      tags: [Shopping]
+      summary: Обновить строку (куплено, правки)
+      operationId: bffPatchShoppingLine
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingLinePatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingLine'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Shopping]
+      summary: Удалить строку
+      operationId: bffDeleteShoppingLine
+      security:
+        - SessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+components:
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+    RecipeId:
+      name: recipeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: session_id
+  responses:
+    Error:
+      description: Ошибка
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+  schemas:
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    RegisterResponse:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+          format: uuid
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+          format: uuid
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+    Nutrition:
+      type: object
+      properties:
+        proteinG:
+          type: number
+        fatG:
+          type: number
+        carbsG:
+          type: number
+        calories:
+          type: number
+    Ingredient:
+      type: object
+      required: [name, productCategory]
+      properties:
+        name:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+        productCategory:
+          type: string
+    RecipeCreate:
+      type: object
+      required: [title, ingredients]
+      properties:
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        sourceUrl:
+          type: string
+          format: uri
+    RecipePatch:
+      type: object
+      properties:
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        sourceUrl:
+          type: string
+          format: uri
+    Recipe:
+      type: object
+      required: [id, title, ingredients, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        sourceUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RecipeSummary:
+      type: object
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+    RecipeListResponse:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipeSummary'
+        total:
+          type: integer
+    ImportUrlRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+    IngredientDraft:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+        productCategory:
+          type: string
+    RecipeDraft:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        cookTimeMinutes:
+          type: integer
+        mealCategory:
+          type: string
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/IngredientDraft'
+        sourceUrl:
+          type: string
+          format: uri
+        imageUrl:
+          type: string
+          format: uri
+    MealSlotCode:
+      type: string
+      enum:
+        - BREAKFAST
+        - SECOND_BREAKFAST
+        - LUNCH
+        - SNACK
+        - DINNER
+        - LATE_DINNER
+    SlotAssignment:
+      type: object
+      required: [slotId, date, slotCode, recipeIds, version]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        slotCode:
+          $ref: '#/components/schemas/MealSlotCode'
+        recipeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        version:
+          type: integer
+          minimum: 1
+    DayPlan:
+      type: object
+      required: [date, slots]
+      properties:
+        date:
+          type: string
+          format: date
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/SlotAssignment'
+    WeekPlanResponse:
+      type: object
+      required: [weekStart, weekEnd, days]
+      properties:
+        weekStart:
+          type: string
+          format: date
+        weekEnd:
+          type: string
+          format: date
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/DayPlan'
+        recipeSearchHint:
+          type: string
+    SlotPatchRequest:
+      type: object
+      required: [recipeIds]
+      properties:
+        recipeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        expectedVersion:
+          type: integer
+          minimum: 1
+    BuildListRequest:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+    BuildListResponse:
+      type: object
+      required: [listId, from, to, replaced]
+      properties:
+        listId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        replaced:
+          type: boolean
+        empty:
+          type: boolean
+    ShoppingLine:
+      type: object
+      required: [lineId, displayName, purchased]
+      properties:
+        lineId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        productCategory:
+          type: string
+          nullable: true
+        purchased:
+          type: boolean
+        mergeNote:
+          type: string
+        sourceRecipeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ShoppingListDetail:
+      type: object
+      required: [listId, from, to, lines]
+      properties:
+        listId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingLine'
+    ManualLineCreate:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        productCategory:
+          type: string
+    ShoppingLinePatch:
+      type: object
+      properties:
+        displayName:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+        productCategory:
+          type: string
+        purchased:
+          type: boolean

@@ -1,0 +1,288 @@
+openapi: 3.0.3
+info:
+  title: meal-planning API
+  description: >
+    Недельный план, фиксированные слоты приёмов пищи, назначения recipe_id (ADR 0002).
+    Изменение одного слота — в границах агрегата дня/недели; идемпотентность через expectedVersion.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8084/api/planning/v1
+    description: Локальная разработка
+tags:
+  - name: Health
+  - name: WeekPlan
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Зависимость недоступна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /week-plans/current:
+    get:
+      tags: [WeekPlan]
+      summary: План на неделю, содержащую anchorDate
+      operationId: getCurrentWeekPlan
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: anchorDate
+          in: query
+          required: true
+          description: Любая дата внутри целевой недели (ISO date)
+          schema:
+            type: string
+            format: date
+        - name: recipeSearch
+          in: query
+          required: false
+          description: Подсказка для UI «В план» (не фильтрует ответ; для BFF/клиента)
+          schema:
+            type: string
+        - name: focusDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Неделя с слотами и назначениями
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeekPlanResponse'
+        '401':
+          description: Нет пользователя
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /slots/{slotId}:
+    patch:
+      tags: [WeekPlan]
+      summary: Обновить назначения в слоте (DnD, замена, очистка)
+      operationId: patchSlotAssignments
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: slotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Идентификатор ячейки «день + тип приёма» из ответа week-plans
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SlotPatchRequest'
+      responses:
+        '200':
+          description: Слот обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotAssignment'
+        '400':
+          description: Конфликт версии или валидация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Слот не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /assignments/plan:
+    get:
+      tags: [WeekPlan]
+      summary: Назначения в диапазоне дат (для shopping-list и агрегации)
+      operationId: listAssignmentsInRange
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Плоский список назначений с датой и слотом
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAssignmentsInRangeResponse'
+        '400':
+          description: Некорректный диапазон
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+components:
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    InternalAuth:
+      type: apiKey
+      in: header
+      name: X-Internal-Auth
+    TrustedUser:
+      type: apiKey
+      in: header
+      name: X-User-Id
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down]
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    MealSlotCode:
+      type: string
+      description: Фиксированные слоты MVP
+      enum:
+        - BREAKFAST
+        - SECOND_BREAKFAST
+        - LUNCH
+        - SNACK
+        - DINNER
+        - LATE_DINNER
+    SlotAssignment:
+      type: object
+      required: [slotId, date, slotCode, recipeIds, version]
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        slotCode:
+          $ref: '#/components/schemas/MealSlotCode'
+        recipeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Порядок — порядок отображения; пустой — слот пуст
+        version:
+          type: integer
+          minimum: 1
+          description: Для оптимистичной блокировки / идемпотентности
+    DayPlan:
+      type: object
+      required: [date, slots]
+      properties:
+        date:
+          type: string
+          format: date
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/SlotAssignment'
+    WeekPlanResponse:
+      type: object
+      required: [weekStart, weekEnd, days]
+      properties:
+        weekStart:
+          type: string
+          format: date
+          description: Понедельник ISO-недели
+        weekEnd:
+          type: string
+          format: date
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/DayPlan'
+        recipeSearchHint:
+          type: string
+          description: Эхо query recipeSearch для mf-planner
+    SlotPatchRequest:
+      type: object
+      required: [recipeIds]
+      properties:
+        recipeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        expectedVersion:
+          type: integer
+          minimum: 1
+          description: Если задан и не совпадает — 409 (опционально для MVP)
+    PlanAssignmentRow:
+      type: object
+      required: [date, slotCode, recipeId]
+      properties:
+        date:
+          type: string
+          format: date
+        slotCode:
+          $ref: '#/components/schemas/MealSlotCode'
+        recipeId:
+          type: string
+          format: uuid
+    PlanAssignmentsInRangeResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanAssignmentRow'

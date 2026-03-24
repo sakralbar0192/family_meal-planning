@@ -1,0 +1,340 @@
+openapi: 3.0.3
+info:
+  title: shopping-list API
+  description: >
+    Формирование списка покупок по периоду со снимком ингредиентов (ADR 0002).
+    Повторный build за тот же период — replace активного списка (политика MVP).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8085/api/shopping/v1
+    description: Локальная разработка
+tags:
+  - name: Health
+  - name: Lists
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Зависимость недоступна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /lists/build:
+    post:
+      tags: [Lists]
+      summary: Собрать список за период (читает план + каталог, пишет снимок)
+      operationId: buildShoppingList
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildListRequest'
+      responses:
+        '200':
+          description: Список создан или заменён для периода
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildListResponse'
+        '400':
+          description: Некорректные даты
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /lists/{listId}:
+    get:
+      tags: [Lists]
+      summary: Список со строками (снимок)
+      operationId: getShoppingList
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingListDetail'
+        '404':
+          description: Не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /lists/{listId}/lines:
+    post:
+      tags: [Lists]
+      summary: Добавить ручную строку
+      operationId: addManualLine
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualLineCreate'
+      responses:
+        '201':
+          description: Строка добавлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingLine'
+        '404':
+          description: Список не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /lists/{listId}/lines/{lineId}:
+    patch:
+      tags: [Lists]
+      summary: Отметка «куплено», правки текста/количества
+      operationId: patchShoppingLine
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingLinePatch'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShoppingLine'
+        '404':
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    delete:
+      tags: [Lists]
+      summary: Удалить строку
+      operationId: deleteShoppingLine
+      security:
+        - InternalAuth: []
+        - TrustedUser: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: listId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Удалено
+        '404':
+          description: Не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+components:
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+  securitySchemes:
+    InternalAuth:
+      type: apiKey
+      in: header
+      name: X-Internal-Auth
+    TrustedUser:
+      type: apiKey
+      in: header
+      name: X-User-Id
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down]
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    BuildListRequest:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+    BuildListResponse:
+      type: object
+      required: [listId, from, to, replaced]
+      properties:
+        listId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        replaced:
+          type: boolean
+          description: true если предыдущий список за период заменён
+        empty:
+          type: boolean
+          description: true если в периоде не было назначений рецептов
+    ShoppingLine:
+      type: object
+      required: [lineId, displayName, purchased]
+      properties:
+        lineId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+          description: Название позиции в снимке
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        productCategory:
+          type: string
+          nullable: true
+        purchased:
+          type: boolean
+        mergeNote:
+          type: string
+          description: Если единицы несовместимы — текст для UI вместо суммы
+        sourceRecipeIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ShoppingListDetail:
+      type: object
+      required: [listId, from, to, lines]
+      properties:
+        listId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingLine'
+    ManualLineCreate:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        productCategory:
+          type: string
+    ShoppingLinePatch:
+      type: object
+      properties:
+        displayName:
+          type: string
+        quantity:
+          type: number
+          nullable: true
+        unit:
+          type: string
+        productCategory:
+          type: string
+        purchased:
+          type: boolean

@@ -10,6 +10,19 @@
 - Заголовки трассировки: `X-Correlation-Id` (опционально от клиента; иначе генерирует BFF).
 - Внутренние вызовы из BFF: `X-User-Id` (доверенный), `X-Internal-Auth` (секрет среды) — не документировать в публичной спеке браузера; описать во внутренней спеке или ADR [0001](../../docs/adr/0001-microservice-boundaries-bff-session-auth.md).
 
+## Файлы MVP
+
+| Спека | Сервис / слой |
+|-------|----------------|
+| [bff.openapi.yaml](./bff.openapi.yaml) | BFF для браузера (`/bff/v1`) |
+| [identity-access.openapi.yaml](./identity-access.openapi.yaml) | Identity & Access |
+| [recipe-catalog.openapi.yaml](./recipe-catalog.openapi.yaml) | Recipe Catalog |
+| [recipe-import.openapi.yaml](./recipe-import.openapi.yaml) | Recipe Import |
+| [meal-planning.openapi.yaml](./meal-planning.openapi.yaml) | Meal Planning |
+| [shopping-list.openapi.yaml](./shopping-list.openapi.yaml) | Shopping List |
+
+Внутренние пути базируются на [solution-architecture.md](../../docs/solution-architecture.md) (`/api/{slug}/v1`).
+
 ## Шаблон
 
 Скопируйте [template-service.yaml](./template-service.yaml) и замените плейсхолдеры `SERVICE_NAME`, `TITLE`, `DESCRIPTION`.

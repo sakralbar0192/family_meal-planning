@@ -18,7 +18,7 @@
 | `/bff/v1/plan/*` | mf-planner | Неделя, дни, слоты, назначения (meal-planning + при необходимости агрегация с catalog) |
 | `/bff/v1/shopping/*` | mf-shopping | Формирование списка, строки, отметки, экспорт |
 
-Точные пути и тела — в будущем `contracts/openapi/bff.openapi.yaml` (агрегированная спека).
+Точные пути и тела — в `contracts/openapi/bff.openapi.yaml`.
 
 ---
 
@@ -53,8 +53,10 @@
 
 | Метод | Путь | Описание |
 |-------|------|----------|
-| GET | `/bff/v1/plan/week` | План на неделю (query `anchorDate` или `weekStart`) |
+| GET | `/bff/v1/plan/week` | План на неделю (query `anchorDate` + опционально `focusDate`, `recipeSearch`) |
 | PATCH | `/bff/v1/plan/slots/{slotId}` | Обновление назначений (DnD); идемпотентность по договорённости |
+
+**Маппинг на `meal-planning`:** `GET /bff/v1/plan/week` → `GET /api/planning/v1/week-plans/current` (с теми же query).
 
 ### Shopping (`mf-shopping`)
 
@@ -62,7 +64,9 @@
 |-------|------|----------|
 | POST | `/bff/v1/shopping/build` | Тело `{ "from": "date", "to": "date" }` → формирование списка |
 | GET | `/bff/v1/shopping/lists/{id}` | Получить список со строками |
+| POST | `/bff/v1/shopping/lists/{id}/lines` | Добавить ручную позицию (UC-3) |
 | PATCH | `/bff/v1/shopping/lists/{id}/lines/{lineId}` | Отметка «куплено», правки |
+| DELETE | `/bff/v1/shopping/lists/{id}/lines/{lineId}` | Удалить строку |
 
 ---
 
