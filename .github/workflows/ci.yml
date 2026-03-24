@@ -49,6 +49,17 @@ jobs:
   bff-web:
     name: BFF Web (Symfony PHPUnit)
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      APP_SECRET: ci-secret
+      DEFAULT_URI: http://localhost
+      BFF_CORS_ALLOW_ORIGIN: http://localhost:5173
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      IAM_BASE_URI: http://localhost:8081/api/iam/v1
+      IMPORT_BASE_URI: http://localhost:8083/api/import/v1
+      CATALOG_BASE_URI: http://localhost:8082/api/catalog/v1
+      PLANNING_BASE_URI: http://localhost:8084/api/planning/v1
+      SHOPPING_BASE_URI: http://localhost:8085/api/shopping/v1
     defaults:
       run:
         working-directory: backend/bff-web
