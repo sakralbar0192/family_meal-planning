@@ -250,7 +250,10 @@ async function save(): Promise<void> {
   <section class="mf-root">
     <header class="head">
       <RouterLink class="back" to="/recipes">← Назад</RouterLink>
-      <h2>{{ isCreate ? 'Новый рецепт' : 'Редактирование' }}</h2>
+      <div class="title-wrap">
+        <p class="eyebrow">Recipe editor</p>
+        <h2>{{ isCreate ? 'Новый рецепт' : 'Редактирование' }}</h2>
+      </div>
     </header>
 
     <p v-if="loading" class="muted">Загрузка…</p>
@@ -293,9 +296,13 @@ async function save(): Promise<void> {
           />
           <input v-model="ing.unit" placeholder="Ед." :disabled="ing.toTaste" />
           <input v-model="ing.productCategory" placeholder="Категория продукта" />
-          <button type="button" class="btn small secondary" @click="removeIngredient(i)">−</button>
+          <button type="button" class="btn small secondary remove-btn" @click="removeIngredient(i)">
+            Удалить
+          </button>
         </div>
-        <button type="button" class="btn secondary small" @click="addIngredient">Добавить строку</button>
+        <button type="button" class="btn secondary small add-btn" @click="addIngredient">
+          Добавить строку
+        </button>
       </fieldset>
 
       <p v-if="error" class="err">{{ error }}</p>
@@ -307,24 +314,57 @@ async function save(): Promise<void> {
 <style scoped>
 .mf-root {
   font-family: Inter, system-ui, sans-serif;
-  padding: var(--space-lg);
+  padding: var(--space-md);
   color: var(--color-text-primary);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
+
+.head {
+  display: grid;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
 .back {
-  display: inline-block;
-  margin-bottom: var(--space-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text-secondary);
   text-decoration: none;
+  justify-self: start;
 }
+
+.title-wrap {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--font-size-title);
+}
+
 .form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-md);
-  max-width: 40rem;
+  max-width: 52rem;
 }
+
 label {
   display: flex;
   flex-direction: column;
@@ -333,12 +373,18 @@ label {
 }
 input,
 textarea {
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: inherit;
 }
+
+textarea {
+  min-height: 132px;
+}
+
 .inline {
   display: flex;
   align-items: center;
@@ -348,37 +394,91 @@ textarea {
 }
 .ing-row {
   display: grid;
-  grid-template-columns: 2fr auto 1fr 1fr 1.5fr auto;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
   align-items: center;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
 }
-@media (max-width: 700px) {
-  .ing-row {
-    grid-template-columns: 1fr;
-  }
+
+fieldset {
+  margin: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
 }
+
+legend {
+  padding: 0 var(--space-xs);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
 .btn {
-  padding: var(--space-sm) var(--space-md);
+  min-height: var(--button-min-height);
+  padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
   font-weight: 600;
+  font-size: var(--font-size-body);
   cursor: pointer;
 }
+
+.btn:hover {
+  background: var(--color-accent-hover);
+}
+
 .btn.secondary {
   background: transparent;
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
+
+.btn.secondary:hover {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
+}
+
 .btn.small {
-  padding: var(--space-xs);
+  min-height: 36px;
+  padding: 0 var(--space-sm);
+  font-size: var(--font-size-caption);
 }
+
+.remove-btn {
+  justify-self: start;
+}
+
+.add-btn {
+  margin-top: var(--space-xs);
+}
+
 .err {
-  color: #b00020;
+  color: var(--color-error);
 }
+
 .muted {
   color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+@media (min-width: 768px) {
+  .mf-root {
+    padding: var(--space-lg);
+  }
+
+  .ing-row {
+    grid-template-columns: 2fr auto 1fr 1fr 1.5fr auto;
+    margin-bottom: var(--space-sm);
+  }
+
+  .remove-btn {
+    justify-self: auto;
+  }
 }
 </style>

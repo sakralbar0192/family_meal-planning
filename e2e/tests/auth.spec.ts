@@ -18,6 +18,7 @@ test.describe('auth UI', () => {
         true,
         'BFF недоступен. Поднимите docker compose и задайте E2E_BFF_BASE_URL при необходимости.',
       );
+      return;
     }
 
     const email = `e2e_${Date.now()}@example.com`;

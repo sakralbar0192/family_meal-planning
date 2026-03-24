@@ -7,7 +7,16 @@ export async function registerAndLandHome(page: Page, email: string, password: s
   await page.getByTestId('register-password').fill(password);
   await page.getByTestId('register-submit').click();
   await expect(page).toHaveURL('/');
-  await expect(page.getByTestId('session-banner')).toBeVisible({ timeout: 20_000 });
+  await expect
+    .poll(
+      async () => {
+        const cookies = await page.context().cookies();
+        return cookies.some((c) => /session/i.test(c.name));
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+  await expect(page.getByTestId('nav-planner')).toBeVisible({ timeout: 20_000 });
 }
 
 export async function createRecipeViaBffCookie(page: Page, title: string): Promise<{ id: string }> {

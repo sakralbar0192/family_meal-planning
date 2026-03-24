@@ -150,7 +150,10 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
 <template>
   <section class="mf-root">
     <header class="head">
-      <h2>Библиотека рецептов</h2>
+      <div class="title-wrap">
+        <p class="eyebrow">Recipes</p>
+        <h2>Библиотека рецептов</h2>
+      </div>
       <div class="actions">
         <RouterLink class="btn secondary" to="/recipes/import">Импорт по URL</RouterLink>
         <RouterLink class="btn" to="/recipes/new">Создать рецепт</RouterLink>
@@ -170,9 +173,11 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
       <button type="submit" class="btn">Найти</button>
     </form>
 
-    <p v-if="loading" class="muted">Загрузка…</p>
-    <p v-else-if="error" class="err">{{ error }}</p>
-    <p v-else class="muted">Всего: {{ total }}</p>
+    <div class="list-state">
+      <p v-if="loading" class="muted">Загрузка…</p>
+      <p v-else-if="error" class="err">{{ error }}</p>
+      <p v-else class="muted">Всего: {{ total }}</p>
+    </div>
 
     <ul v-if="!loading" class="cards">
       <li v-for="r in items" :key="r.id" class="card">
@@ -228,124 +233,175 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
 <style scoped>
 .mf-root {
   font-family: Inter, system-ui, sans-serif;
-  padding: var(--space-lg);
+  padding: var(--space-md);
   color: var(--color-text-primary);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
+
 .head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: var(--space-md);
   margin-bottom: var(--space-md);
 }
+
+.title-wrap {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 h2 {
   margin: 0;
   font-size: var(--font-size-title);
 }
+
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
 }
+
 .filters {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
+
 .filters input {
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: inherit;
 }
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: var(--button-min-height);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   font-size: var(--font-size-body);
 }
+
+.btn:hover {
+  background: var(--color-accent-hover);
+}
+
 .btn.secondary {
   background: transparent;
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
-.btn.danger {
-  background: color-mix(in srgb, #c00 85%, var(--color-text-primary));
-  color: #fff;
+
+.btn.secondary:hover {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
 }
+
+.btn.danger {
+  background: var(--color-error);
+  color: var(--color-text-on-accent);
+}
+
+.btn.danger:hover {
+  background: color-mix(in srgb, var(--color-error) 85%, black);
+}
+
 .btn.small {
+  min-height: 36px;
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-caption);
 }
+
+.list-state {
+  margin-bottom: var(--space-sm);
+}
+
 .cards {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-md);
 }
+
 .card {
+  display: grid;
+  grid-template-rows: 1fr auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  background: var(--color-bg-elevated);
 }
+
 .card-main {
-  display: block;
+  display: grid;
+  gap: var(--space-xs);
   padding: var(--space-md);
   text-decoration: none;
   color: inherit;
 }
+
 .card-main:hover {
-  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
+  background: color-mix(in srgb, var(--color-bg-elevated) 92%, var(--color-text-primary));
 }
+
 .title {
   display: block;
   font-weight: 700;
   font-size: var(--font-size-body);
 }
+
 .meta,
 .muted {
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
 }
+
 .badge {
   display: inline-block;
-  margin-top: var(--space-xs);
+  justify-self: start;
   padding: 2px 8px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-surface) 80%, var(--color-text-primary));
+  background: color-mix(in srgb, var(--color-surface) 85%, var(--color-accent));
   font-size: var(--font-size-caption);
 }
+
 .card-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-md);
   border-top: 1px solid var(--color-border);
 }
+
 .err {
-  color: #b00020;
+  color: var(--color-error);
   font-size: var(--font-size-body);
 }
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -362,6 +418,7 @@ h2 {
   flex-direction: column;
   gap: var(--space-md);
 }
+
 .modal label {
   display: flex;
   flex-direction: column;
@@ -370,13 +427,56 @@ h2 {
 }
 .modal input,
 .modal select {
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
+
 .modal-actions {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
+}
+
+@media (min-width: 768px) {
+  .mf-root {
+    padding: var(--space-lg);
+  }
+
+  .actions {
+    grid-template-columns: repeat(3, max-content);
+    justify-content: start;
+  }
+
+  .filters {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) max-content;
+    align-items: center;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card-actions {
+    grid-template-columns: repeat(3, max-content);
+    justify-content: start;
+  }
+
+  .modal-actions {
+    grid-template-columns: repeat(2, max-content);
+    justify-content: end;
+  }
+}
+
+@media (min-width: 1200px) {
+  .head {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 </style>

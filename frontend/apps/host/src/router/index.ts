@@ -1,4 +1,3 @@
-import { defineAsyncComponent } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteLocationNormalized } from 'vue-router';
 import { useSession } from '../composables/useSession';
@@ -6,12 +5,12 @@ import HomeView from '../views/HomeView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 
-const RecipesLibrary = defineAsyncComponent(() => import('mf_recipes/Library'));
-const RecipesImport = defineAsyncComponent(() => import('mf_recipes/ImportView'));
-const RecipeDetail = defineAsyncComponent(() => import('mf_recipes/RecipeDetail'));
-const RecipeForm = defineAsyncComponent(() => import('mf_recipes/RecipeForm'));
-const PlannerPage = defineAsyncComponent(() => import('mf_planner/PlannerPage'));
-const ShoppingPage = defineAsyncComponent(() => import('mf_shopping/ShoppingPage'));
+const RecipesLibrary = () => import('mf_recipes/Library');
+const RecipesImport = () => import('mf_recipes/ImportView');
+const RecipeDetail = () => import('mf_recipes/RecipeDetail');
+const RecipeForm = () => import('mf_recipes/RecipeForm');
+const PlannerPage = () => import('mf_planner/PlannerPage');
+const ShoppingPage = () => import('mf_shopping/ShoppingPage');
 
 function routeRequiresAuth(to: RouteLocationNormalized): boolean {
   const p = to.path;

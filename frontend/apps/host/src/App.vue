@@ -11,36 +11,34 @@ async function onLogout(): Promise<void> {
 
 <template>
   <div class="shell">
-    <header class="top">
-      <div class="head-row">
-        <div>
-          <h1>Планировщик питания</h1>
-          <p class="sub">
-            Host + Module Federation. Remotes: см. frontend/README.md
-          </p>
-        </div>
-        <nav class="nav" aria-label="Основная навигация">
-          <template v-if="isLoggedIn">
-            <RouterLink to="/recipes" data-testid="nav-recipes">Рецепты</RouterLink>
-            <RouterLink to="/planner" data-testid="nav-planner">Планировщик</RouterLink>
-            <button
-              type="button"
-              class="linkish"
-              data-testid="logout-button"
-              @click="onLogout"
-            >
-              Выйти
-            </button>
-          </template>
-          <template v-else>
-            <RouterLink to="/login" data-testid="nav-login">Вход</RouterLink>
-            <RouterLink to="/register" data-testid="nav-register">Регистрация</RouterLink>
-          </template>
-        </nav>
+    <header class="topbar">
+      <div class="topbar-text">
+        <p class="eyebrow">Family meal planning</p>
+        <h1>Планировщик питания</h1>
       </div>
+      <nav class="nav" aria-label="Основная навигация">
+        <template v-if="isLoggedIn">
+          <RouterLink class="nav-link" to="/recipes" data-testid="nav-recipes">Рецепты</RouterLink>
+          <RouterLink class="nav-link" to="/planner" data-testid="nav-planner">Планировщик</RouterLink>
+          <button
+            type="button"
+            class="nav-link nav-link-ghost"
+            data-testid="logout-button"
+            @click="onLogout"
+          >
+            Выйти
+          </button>
+        </template>
+        <template v-else>
+          <RouterLink class="nav-link nav-link-ghost" to="/login" data-testid="nav-login">Вход</RouterLink>
+          <RouterLink class="nav-link" to="/register" data-testid="nav-register">Регистрация</RouterLink>
+        </template>
+      </nav>
     </header>
 
-    <RouterView />
+    <main class="content">
+      <RouterView />
+    </main>
   </div>
 </template>
 
@@ -50,50 +48,116 @@ async function onLogout(): Promise<void> {
   background: var(--color-bg);
   color: var(--color-text-primary);
   font-family: Inter, system-ui, sans-serif;
-  padding: var(--space-xl);
+  padding: var(--space-md);
 }
-.top {
-  margin-bottom: var(--space-xl);
-}
-.head-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+
+.topbar {
+  display: grid;
   gap: var(--space-md);
+  margin: 0 auto var(--space-lg);
+  max-width: 960px;
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
 }
+
+.topbar-text {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 h1 {
-  margin: 0 0 var(--space-sm);
+  margin: 0;
   font-size: var(--font-size-heading);
 }
-.sub {
-  margin: 0;
-  max-width: 48rem;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-body);
-}
+
 .nav {
-  display: flex;
-  gap: var(--space-md);
-  align-items: center;
-  font-size: var(--font-size-body);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
 }
-.nav a {
-  color: var(--color-text-primary);
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
   font-weight: 600;
+  font-size: var(--font-size-body);
   text-decoration: none;
 }
-.nav a.router-link-active {
-  text-decoration: underline;
+
+.nav-link:hover {
+  background: var(--color-accent-hover);
 }
-.linkish {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-weight: 600;
+
+.nav-link-ghost {
+  background: transparent;
   color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.nav-link-ghost:hover {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
+}
+
+.nav-link.router-link-active {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.content {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+button.nav-link {
+  width: 100%;
+  font: inherit;
   cursor: pointer;
-  text-decoration: underline;
+}
+
+@media (min-width: 768px) {
+  .shell {
+    padding: var(--space-lg);
+  }
+
+  .topbar {
+    margin-bottom: var(--space-xl);
+  }
+
+  .nav {
+    grid-template-columns: repeat(3, max-content);
+    justify-content: start;
+  }
+
+  button.nav-link {
+    width: auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  .shell {
+    padding: var(--space-xl);
+  }
+
+  .topbar,
+  .content {
+    max-width: 1120px;
+  }
 }
 </style>

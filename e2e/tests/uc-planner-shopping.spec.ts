@@ -1,6 +1,13 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { isBffHealthy, requiresBff } from '../helpers/bff';
 import { createRecipeViaBffCookie, parseWeekStartFromRange, registerAndLandHome } from '../helpers/session';
+
+async function waitPlannerReady(page: Page): Promise<void> {
+  await expect(page.getByText('Загрузка плана…')).toBeHidden({ timeout: 30_000 });
+  await expect(page.getByTestId('planner-week-range')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('planner-active-slot')).toBeEnabled({ timeout: 15_000 });
+  await expect(page.getByTestId('planner-shopping-date-from')).not.toHaveValue('', { timeout: 15_000 });
+}
 
 test.describe('UC-2 / UC-3 план → список покупок', () => {
   test('UC-2: рецепт в слот «Ужин» понедельника; UC-3: список содержит ингредиент', async ({
@@ -28,7 +35,7 @@ test.describe('UC-2 / UC-3 план → список покупок', () => {
     expect(recipeId).toBeTruthy();
 
     await page.goto('/planner');
-    await expect(page.getByText('Загрузка плана…')).toBeHidden({ timeout: 30_000 });
+    await waitPlannerReady(page);
 
     const rangeText = await page.getByTestId('planner-week-range').textContent();
     expect(rangeText).toBeTruthy();
@@ -40,7 +47,10 @@ test.describe('UC-2 / UC-3 план → список покупок', () => {
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.getByRole('button', { name: 'В слот' }).click();
 
-    await expect(page.locator('.slot-recipes').filter({ hasText: recipeTitle })).toBeVisible({
+    const mondayDinnerSlot = page
+      .locator('.day', { has: page.getByRole('heading', { level: 4, name: monday }) })
+      .locator('.slot', { has: page.locator('.slot-head', { hasText: 'Ужин' }) });
+    await expect(mondayDinnerSlot.locator('.slot-recipes li', { hasText: recipeTitle })).toBeVisible({
       timeout: 15_000,
     });
 
@@ -76,7 +86,7 @@ test.describe('UC-2 / UC-3 план → список покупок', () => {
 
     await registerAndLandHome(page, email, password);
     await page.goto('/planner');
-    await expect(page.getByText('Загрузка плана…')).toBeHidden({ timeout: 30_000 });
+    await waitPlannerReady(page);
 
     await expect(page.getByTestId('planner-shopping-date-from')).not.toHaveValue('');
     await page.getByTestId('planner-build-shopping-list').click();

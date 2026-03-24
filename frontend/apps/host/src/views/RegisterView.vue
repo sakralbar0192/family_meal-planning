@@ -28,6 +28,7 @@ async function onSubmit(): Promise<void> {
 
 <template>
   <section class="auth-card">
+    <p class="eyebrow">Auth</p>
     <h2>Регистрация</h2>
     <form class="form" @submit.prevent="onSubmit">
       <label class="field">
@@ -65,21 +66,30 @@ async function onSubmit(): Promise<void> {
 
 <style scoped>
 .auth-card {
-  max-width: 22rem;
+  max-width: 28rem;
   margin: 0 auto;
-  padding: var(--space-xl);
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
+  display: grid;
+  gap: var(--space-sm);
+}
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 h2 {
-  margin: 0 0 var(--space-lg);
+  margin: 0;
   font-size: var(--font-size-title);
 }
 .form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-md);
+  margin-top: var(--space-xs);
 }
 .field {
   display: flex;
@@ -89,37 +99,49 @@ h2 {
   color: var(--color-text-secondary);
 }
 .field input {
-  padding: var(--space-sm) var(--space-md);
+  min-height: var(--input-min-height);
+  padding: 0 var(--space-md);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   font-size: var(--font-size-body);
 }
 .err {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--color-error);
   font-size: var(--font-size-caption);
 }
 .btn {
-  margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  min-height: var(--button-min-height);
+  padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
   font-weight: 600;
   cursor: pointer;
+}
+.btn:hover {
+  background: var(--color-accent-hover);
 }
 .btn:disabled {
   opacity: 0.6;
   cursor: default;
 }
 .hint {
-  margin: var(--space-lg) 0 0;
-  font-size: var(--font-size-body);
+  margin: var(--space-sm) 0 0;
+  font-size: var(--font-size-caption);
   color: var(--color-text-secondary);
 }
 .hint a {
-  color: inherit;
+  color: var(--color-text-primary);
   font-weight: 600;
+  text-decoration: none;
+}
+@media (min-width: 768px) {
+  .auth-card {
+    padding: var(--space-xl);
+  }
 }
 </style>

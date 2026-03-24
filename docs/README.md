@@ -13,6 +13,7 @@
 | ADR (принятые решения) | [adr/README.md](./adr/README.md) |
 | UX-договорённости, этапы макета/прототипа | [design-plan.md](./design-plan.md) |
 | Figma: токены, компоненты, фреймы, прототип, синхронизация | [technical-spec-figma.md](./technical-spec-figma.md) |
+| Чеклист UI parity (код vs Figma) | [ui-parity-checklist.md](./ui-parity-checklist.md) |
 
 Расширенный **индекс документов** с пояснением «когда читать» — в [architecture-decision-context.md](./architecture-decision-context.md) §9.
 
@@ -25,6 +26,7 @@
 | Вход для архитектурных решений и матрица трассировки → ADR | [architecture-decision-context.md](./architecture-decision-context.md) |
 | Продуктовый UX и этапы дизайна (1–7) | [design-plan.md](./design-plan.md) |
 | Аудит и спецификация макета в Figma (`node id`, чеклист расхождений) | [technical-spec-figma.md](./technical-spec-figma.md) |
+| Состояние реализации UI в коде относительно Figma | [ui-parity-checklist.md](./ui-parity-checklist.md) |
 
 Матрица **сценарии × контексты × события** ведётся в одном месте: [domain-contexts-event-storming.md](./domain-contexts-event-storming.md) §4. Архитектурный контекст на неё ссылается, не копируя таблицу.
 

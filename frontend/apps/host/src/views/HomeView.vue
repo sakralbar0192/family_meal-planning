@@ -20,72 +20,140 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="home">
-    <p class="bff">{{ bffStatus }}</p>
-    <p
+  <section class="home">
+    <header class="hero">
+      <h2>Добро пожаловать</h2>
+      <p class="muted">
+        Планируйте питание на неделю, собирайте рецепты и формируйте список покупок.
+      </p>
+      <p class="bff">{{ bffStatus }}</p>
+    </header>
+
+    <article
       v-if="isLoggedIn === true"
-      class="session-ok"
+      class="session-card session-card-ok"
       data-testid="session-banner"
     >
-      Сессия активна (cookie BFF).
-    </p>
-    <p v-else-if="isLoggedIn === false" class="session-out" data-testid="session-guest">
-      Войдите, чтобы работать с рецептами и планом.
-    </p>
+      <h3>Сессия активна</h3>
+      <p class="muted">Можно переходить к рецептам и планировщику.</p>
+    </article>
+
+    <article
+      v-else-if="isLoggedIn === false"
+      class="session-card"
+      data-testid="session-guest"
+    >
+      <h3>Гостевой режим</h3>
+      <p class="muted">Войдите или зарегистрируйтесь, чтобы открыть рабочие разделы.</p>
+    </article>
 
     <nav v-if="isLoggedIn" class="tiles" aria-label="Разделы">
-      <RouterLink class="tile" to="/recipes">Рецепты</RouterLink>
-      <RouterLink class="tile" to="/planner">Планировщик</RouterLink>
+      <RouterLink class="tile tile-primary" to="/recipes">Рецепты</RouterLink>
+      <RouterLink class="tile tile-secondary" to="/planner">Планировщик</RouterLink>
     </nav>
-    <p v-else class="hint muted">После входа откроются разделы «Рецепты» и «Планировщик».</p>
-  </div>
+  </section>
 </template>
 
 <style scoped>
 .home {
+  display: grid;
+  gap: var(--space-md);
   width: 100%;
 }
+
+.hero {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--font-size-title);
+}
+
+h3 {
+  margin: 0;
+  font-size: var(--font-size-body);
+}
+
 .bff {
-  margin: 0 0 var(--space-sm);
+  margin: 0;
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
 }
-.session-ok {
-  margin: 0 0 var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-text-primary));
-  border: 1px solid var(--color-border);
-  font-size: var(--font-size-body);
-}
-.session-out {
-  margin: 0 0 var(--space-md);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-body);
-}
-.tiles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md);
-  margin-top: var(--space-lg);
-}
-.tile {
-  display: inline-flex;
-  padding: var(--space-lg) var(--space-xl);
+
+.session-card {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  color: var(--color-text-primary);
+}
+
+.session-card-ok {
+  border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--color-success));
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+.tile {
+  display: inline-flex;
+  min-height: var(--touch-target);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   font-weight: 600;
+  font-size: var(--font-size-body);
   text-decoration: none;
 }
-.tile:hover {
+
+.tile-primary {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.tile-primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.tile-secondary {
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+}
+
+.tile-secondary:hover {
   background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
 }
-.hint {
-  margin-top: var(--space-md);
-}
+
 .muted {
+  margin: 0;
   color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+}
+
+@media (min-width: 768px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    column-gap: var(--space-xl);
+  }
 }
 </style>

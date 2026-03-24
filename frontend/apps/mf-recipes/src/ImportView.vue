@@ -53,7 +53,10 @@ async function submit(): Promise<void> {
 <template>
   <section class="mf-root">
     <RouterLink class="back" to="/recipes">← К библиотеке</RouterLink>
-    <h2>Импорт по URL</h2>
+    <div class="title-wrap">
+      <p class="eyebrow">Import</p>
+      <h2>Импорт по URL</h2>
+    </div>
     <p class="muted">
       Разрешены только хосты из списка на сервере (см. IMPORT_ALLOWED_HOSTS). Для проверки используйте
       разрешённый домен, например example.com.
@@ -74,23 +77,48 @@ async function submit(): Promise<void> {
 <style scoped>
 .mf-root {
   font-family: Inter, system-ui, sans-serif;
-  padding: var(--space-lg);
+  padding: var(--space-md);
   color: var(--color-text-primary);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+  display: grid;
+  gap: var(--space-sm);
 }
 .back {
-  display: inline-block;
-  margin-bottom: var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text-secondary);
   text-decoration: none;
+  justify-self: start;
+}
+.title-wrap {
+  display: grid;
+  gap: var(--space-xs);
+}
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+h2 {
+  margin: 0;
+  font-size: var(--font-size-title);
 }
 .form {
-  max-width: 32rem;
+  max-width: 44rem;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  margin-top: var(--space-sm);
 }
 label {
   display: flex;
@@ -98,6 +126,7 @@ label {
   gap: var(--space-xs);
 }
 input {
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -105,19 +134,28 @@ input {
   color: inherit;
 }
 .btn {
-  padding: var(--space-sm) var(--space-md);
+  min-height: var(--button-min-height);
+  padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
   font-weight: 600;
   cursor: pointer;
+}
+.btn:hover {
+  background: var(--color-accent-hover);
 }
 .muted {
   color: var(--color-text-muted);
   font-size: var(--font-size-caption);
 }
 .err {
-  color: #b00020;
+  color: var(--color-error);
+}
+@media (min-width: 768px) {
+  .mf-root {
+    padding: var(--space-lg);
+  }
 }
 </style>

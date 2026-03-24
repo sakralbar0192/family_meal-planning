@@ -74,14 +74,22 @@ function goPlannerWithDate(): void {
     <template v-else-if="recipe">
       <header class="head">
         <RouterLink class="back" to="/recipes">← К библиотеке</RouterLink>
-        <h2>{{ recipe.title }}</h2>
+        <div class="title-wrap">
+          <p class="eyebrow">Recipe</p>
+          <h2>{{ recipe.title }}</h2>
+        </div>
         <div class="actions">
           <button type="button" class="btn" @click="openMonthPicker">В план</button>
           <RouterLink class="btn secondary" :to="`/recipes/${recipe.id}/edit`">Редактировать</RouterLink>
         </div>
       </header>
-      <p v-if="recipe.cookTimeMinutes != null" class="muted">Время: {{ recipe.cookTimeMinutes }} мин</p>
-      <p v-if="recipe.mealCategory" class="muted">Приём пищи: {{ recipe.mealCategory }}</p>
+
+      <section class="meta-row">
+        <p v-if="recipe.cookTimeMinutes != null" class="meta-chip">
+          Время: {{ recipe.cookTimeMinutes }} мин
+        </p>
+        <p v-if="recipe.mealCategory" class="meta-chip">Приём пищи: {{ recipe.mealCategory }}</p>
+      </section>
 
       <section v-if="recipe.nutrition" class="block">
         <h3>Пищевая ценность</h3>
@@ -134,49 +142,95 @@ function goPlannerWithDate(): void {
 <style scoped>
 .mf-root {
   font-family: Inter, system-ui, sans-serif;
-  padding: var(--space-lg);
+  padding: var(--space-md);
   color: var(--color-text-primary);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 .head {
+  display: grid;
+  gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 .back {
-  display: inline-block;
-  margin-bottom: var(--space-sm);
+  display: inline-flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text-secondary);
   text-decoration: none;
+  justify-self: start;
+}
+.title-wrap {
+  display: grid;
+  gap: var(--space-xs);
+}
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 h2 {
-  margin: 0 0 var(--space-sm);
+  margin: 0;
   font-size: var(--font-size-title);
 }
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
-  margin-top: var(--space-md);
 }
 .btn {
   display: inline-flex;
-  padding: var(--space-sm) var(--space-md);
+  min-height: var(--button-min-height);
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+}
+.btn:hover {
+  background: var(--color-accent-hover);
 }
 .btn.secondary {
   background: transparent;
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
+.btn.secondary:hover {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
+}
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+.meta-chip {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
 .block {
   margin-top: var(--space-lg);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
 }
 .block h3 {
   margin: 0 0 var(--space-sm);
@@ -192,7 +246,7 @@ h2 {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,13 +270,27 @@ h2 {
   font-size: var(--font-size-caption);
 }
 .modal input {
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 .modal-actions {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
+}
+@media (min-width: 768px) {
+  .mf-root {
+    padding: var(--space-lg);
+  }
+  .actions {
+    grid-template-columns: repeat(2, max-content);
+    justify-content: start;
+  }
+  .modal-actions {
+    grid-template-columns: repeat(2, max-content);
+    justify-content: end;
+  }
 }
 </style>

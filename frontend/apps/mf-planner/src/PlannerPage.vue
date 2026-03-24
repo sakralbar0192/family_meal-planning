@@ -363,7 +363,10 @@ function nextMonth(): void {
 <template>
   <section class="mf-root">
     <header class="head">
-      <h2>Планировщик</h2>
+      <div class="title-wrap">
+        <p class="eyebrow">Planner</p>
+        <h2>Планировщик</h2>
+      </div>
       <div class="row">
         <button type="button" class="btn secondary" @click="shiftWeek(-7)">← Неделя</button>
         <span class="muted" data-testid="planner-week-range">{{ week?.weekStart }} — {{ week?.weekEnd }}</span>
@@ -482,21 +485,36 @@ function nextMonth(): void {
 <style scoped>
 .mf-root {
   font-family: Inter, system-ui, sans-serif;
-  padding: var(--space-lg);
+  padding: var(--space-md);
   color: var(--color-text-primary);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 .head {
+  display: grid;
+  gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
+.title-wrap {
+  display: grid;
+  gap: var(--space-xs);
+}
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+h2 {
+  margin: 0;
+  font-size: var(--font-size-title);
+}
 .row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-sm);
-  margin-top: var(--space-sm);
 }
 .shop-panel {
   border: 1px solid var(--color-border);
@@ -505,10 +523,9 @@ function nextMonth(): void {
   margin-bottom: var(--space-lg);
 }
 .shop-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-md);
-  align-items: flex-end;
   margin-top: var(--space-sm);
 }
 .shop-row label {
@@ -518,19 +535,15 @@ function nextMonth(): void {
   font-size: var(--font-size-caption);
 }
 .shop-row input {
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
 .layout {
   display: grid;
-  grid-template-columns: 16rem 1fr;
-  gap: var(--space-lg);
-}
-@media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
 }
 .sidebar {
   border: 1px solid var(--color-border);
@@ -540,6 +553,7 @@ function nextMonth(): void {
 .sidebar input {
   width: 100%;
   margin: var(--space-sm) 0;
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -552,6 +566,7 @@ function nextMonth(): void {
   margin-bottom: var(--space-sm);
 }
 .slot-pick select {
+  min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -581,7 +596,8 @@ function nextMonth(): void {
   padding: var(--space-md);
 }
 .day[data-focus='true'] {
-  outline: 2px solid var(--color-text-primary);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 .day h4 {
   margin: 0 0 var(--space-sm);
@@ -608,32 +624,44 @@ function nextMonth(): void {
   font-size: var(--font-size-caption);
 }
 .link-remove {
-  border: none;
-  background: none;
-  color: #b00020;
+  min-height: 28px;
+  min-width: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-error);
   cursor: pointer;
   font-size: 1.2rem;
   line-height: 1;
 }
 .btn {
-  padding: var(--space-sm) var(--space-md);
+  min-height: var(--button-min-height);
+  padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   border: none;
-  background: var(--color-text-primary);
-  color: var(--color-bg);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+}
+.btn:hover {
+  background: var(--color-accent-hover);
 }
 .btn.secondary {
   background: transparent;
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
+.btn.secondary:hover {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
+}
 .btn.small {
-  padding: 2px 8px;
+  min-height: 36px;
+  padding: 0 var(--space-sm);
   font-size: var(--font-size-caption);
 }
 .muted {
@@ -641,13 +669,13 @@ function nextMonth(): void {
   font-size: var(--font-size-caption);
 }
 .err {
-  color: #b00020;
+  color: var(--color-error);
   font-size: var(--font-size-body);
 }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-overlay);
   z-index: 40;
   display: flex;
   align-items: center;
@@ -658,7 +686,8 @@ function nextMonth(): void {
   background: var(--color-surface);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
-  max-width: 22rem;
+  max-width: 24rem;
+  width: 100%;
 }
 .cal-nav {
   display: flex;
@@ -681,6 +710,7 @@ function nextMonth(): void {
   margin-bottom: var(--space-md);
 }
 .cell {
+  min-height: 40px;
   aspect-ratio: 1;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -690,5 +720,34 @@ function nextMonth(): void {
 .cell:disabled {
   opacity: 0.25;
   cursor: default;
+}
+@media (min-width: 768px) {
+  .mf-root {
+    padding: var(--space-lg);
+  }
+  .row {
+    grid-template-columns: repeat(3, max-content);
+    align-items: center;
+  }
+  .shop-row {
+    grid-template-columns: repeat(2, minmax(0, max-content)) 1fr;
+    align-items: end;
+  }
+  .layout {
+    grid-template-columns: 16rem 1fr;
+    gap: var(--space-lg);
+  }
+}
+@media (min-width: 1200px) {
+  .head {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+  .row {
+    grid-template-columns: repeat(5, max-content);
+  }
+  .shop-row {
+    grid-template-columns: repeat(5, max-content);
+  }
 }
 </style>

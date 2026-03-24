@@ -21,16 +21,24 @@ npm run build
 
 ## Локальная разработка с микрофронтами
 
-Remotes должны отдавать `remoteEntry.js`. Варианты:
+Remotes должны отдавать `remoteEntry.js`. Для текущей конфигурации Vite Federation используется путь `assets/remoteEntry.js` (например `http://127.0.0.1:5174/assets/remoteEntry.js`).
 
 1. **Три терминала + host:** в каждом запустите `npm run dev` в `apps/mf-recipes`, `apps/mf-planner`, `apps/mf-shopping`, затем `npm run dev` в `apps/host`.
 2. **Preview после сборки:** `npm run build`, затем в каждом remote `npm run preview` на своём порту, затем `npm run dev` в host.
+
+Для сценария Module Federation через `host` используйте второй вариант (preview remotes + host dev). В `vite dev` у remote-приложений `remoteEntry.js` может не отдаваться, из-за чего host не загрузит MFE-страницы.
 
 Переменные окружения для URL `remoteEntry.js` (если порты другие):
 
 - `VITE_MF_RECIPES_URL`
 - `VITE_MF_PLANNER_URL`
 - `VITE_MF_SHOPPING_URL`
+
+Пример для локального dev/hybrid запуска через `Makefile`:
+
+- `VITE_MF_RECIPES_URL=http://localhost:5174/assets/remoteEntry.js`
+- `VITE_MF_PLANNER_URL=http://localhost:5175/assets/remoteEntry.js`
+- `VITE_MF_SHOPPING_URL=http://localhost:5176/assets/remoteEntry.js`
 
 ## Продакшен
 
