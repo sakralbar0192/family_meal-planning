@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@meal/bff-client": "*",
+    "@meal/ui-kit": "*",
     "@meal/ui-tokens": "*",
     "vue": "^3.4.21",
     "vue-router": "^4.4.0"

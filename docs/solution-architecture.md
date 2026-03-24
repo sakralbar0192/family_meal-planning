@@ -109,6 +109,7 @@ flowchart TB
 | `frontend/apps/mf-shopping` | Список покупок | 5176 |
 
 Общие токены: `frontend/packages/ui-tokens`. Сборка: см. [frontend/README.md](../frontend/README.md).
+Единые правила frontend-архитектуры, ownership host/MFE, FSD-baseline, shared `ui-kit`, central Storybook и тестовая стратегия зафиксированы в [frontend-architecture.md](./frontend-architecture.md) и ADR [0004](./adr/0004-frontend-architecture-baseline-fsd-uikit-storybook-tests.md), [0005](./adr/0005-design-tokens-figma-sync-governance.md).
 
 ---
 

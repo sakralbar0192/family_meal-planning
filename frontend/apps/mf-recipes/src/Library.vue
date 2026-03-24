@@ -11,6 +11,7 @@ import { RouterLink, useRouter } from 'vue-router';
 import { MEAL_SLOT_CODES, MEAL_SLOT_LABELS } from './mealSlots';
 import { useBff } from './useBff';
 import type { RecipeListResponse, RecipeSummary } from '@meal/bff-client';
+import { UiButton, UiModalShell, UiRecipeCard } from '@meal/ui-kit';
 
 const router = useRouter();
 const bff = useBff();
@@ -182,27 +183,21 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
     <ul v-if="!loading" class="cards">
       <li v-for="r in items" :key="r.id" class="card">
         <RouterLink class="card-main" :to="`/recipes/${r.id}`">
-          <span class="title">{{ r.title }}</span>
-          <span v-if="r.cookTimeMinutes != null" class="meta">{{ r.cookTimeMinutes }} мин</span>
-          <span v-if="r.mealCategory" class="badge">{{ r.mealCategory }}</span>
+          <UiRecipeCard
+            :title="r.title"
+            :meta="r.cookTimeMinutes != null ? `${r.cookTimeMinutes} мин` : undefined"
+            :badge="r.mealCategory || undefined"
+          />
         </RouterLink>
         <div class="card-actions">
-          <button type="button" class="btn small" @click.stop="openPlanModal(r)">В план</button>
+          <UiButton size="sm" @click.stop="openPlanModal(r)">В план</UiButton>
           <RouterLink class="btn small secondary" :to="`/recipes/${r.id}/edit`">Изменить</RouterLink>
-          <button type="button" class="btn small danger" @click.stop="deleteRecipe(r)">Удалить</button>
+          <UiButton size="sm" variant="danger" @click.stop="deleteRecipe(r)">Удалить</UiButton>
         </div>
       </li>
     </ul>
 
-    <div
-      v-if="planModalOpen"
-      class="modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="plan-modal-title"
-    >
-      <div class="modal">
-        <h3 id="plan-modal-title">Добавить в план</h3>
+    <UiModalShell v-if="planModalOpen" :open="planModalOpen" title="Добавить в план" @close="closePlanModal">
         <p v-if="planRecipe" class="muted">{{ planRecipe.title }}</p>
         <label>
           Дата
@@ -217,16 +212,11 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
           </select>
         </label>
         <p v-if="planError" class="err">{{ planError }}</p>
-        <div class="modal-actions">
-          <button type="button" class="btn secondary" :disabled="planBusy" @click="closePlanModal">
-            Отмена
-          </button>
-          <button type="button" class="btn" :disabled="planBusy" @click="confirmAddToPlan">
-            Добавить
-          </button>
-        </div>
-      </div>
-    </div>
+        <template #actions>
+          <UiButton variant="secondary" :disabled="planBusy" @click="closePlanModal">Отмена</UiButton>
+          <UiButton :disabled="planBusy" @click="confirmAddToPlan">Добавить</UiButton>
+        </template>
+    </UiModalShell>
   </section>
 </template>
 
@@ -364,25 +354,10 @@ h2 {
   background: color-mix(in srgb, var(--color-bg-elevated) 92%, var(--color-text-primary));
 }
 
-.title {
-  display: block;
-  font-weight: 700;
-  font-size: var(--font-size-body);
-}
-
 .meta,
 .muted {
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
-}
-
-.badge {
-  display: inline-block;
-  justify-self: start;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-surface) 85%, var(--color-accent));
-  font-size: var(--font-size-caption);
 }
 
 .card-actions {
@@ -398,27 +373,6 @@ h2 {
   font-size: var(--font-size-body);
 }
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: var(--space-lg);
-}
-.modal {
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  padding: var(--space-lg);
-  max-width: 24rem;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
 .modal label {
   display: flex;
   flex-direction: column;
@@ -431,12 +385,6 @@ h2 {
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-}
-
-.modal-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-sm);
 }
 
 @media (min-width: 768px) {
@@ -463,10 +411,6 @@ h2 {
     justify-content: start;
   }
 
-  .modal-actions {
-    grid-template-columns: repeat(2, max-content);
-    justify-content: end;
-  }
 }
 
 @media (min-width: 1200px) {

@@ -3,7 +3,7 @@ SHELL := /bin/bash
 COMPOSE_FILE ?= infra/docker-compose.app.yml
 DC := docker compose -f $(COMPOSE_FILE)
 
-.PHONY: help build up start stop restart down down-v ps logs health frontend-install frontend-build frontend-clean frontend-dev-host frontend-dev-recipes frontend-dev-planner frontend-dev-shopping frontend-dev-all frontend-hybrid frontend-hybrid-bg dev e2e-local e2e-fullstack
+.PHONY: help build up start stop restart down down-v ps logs health frontend-install frontend-build frontend-storybook frontend-clean frontend-dev-host frontend-dev-recipes frontend-dev-planner frontend-dev-shopping frontend-dev-all frontend-hybrid frontend-hybrid-bg dev e2e-local e2e-fullstack
 
 help:
 	@echo "Family meal planning stack"
@@ -25,6 +25,7 @@ help:
 	@echo "  health    Probe BFF health endpoint on localhost:8080"
 	@echo "  frontend-install   Install frontend workspace deps"
 	@echo "  frontend-build  Build all frontend workspaces"
+	@echo "  frontend-storybook     Run Storybook for @meal/ui-kit (default :6006)"
 	@echo "  frontend-clean         Stop all local Vite/preview processes"
 	@echo "  frontend-dev-host      Run host dev server (5173)"
 	@echo "  frontend-dev-recipes   Run mf-recipes dev server (5174)"
@@ -80,6 +81,9 @@ frontend-install:
 
 frontend-build:
 	npm run build --prefix frontend
+
+frontend-storybook:
+	cd frontend && npm run storybook
 
 frontend-clean:
 	for p in 5173 5174 5175 5176; do \

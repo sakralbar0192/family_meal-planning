@@ -3,6 +3,7 @@ import { bffErrorFromResponse, bffErrorMessage, type ShoppingLine, type Shopping
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useBff } from './useBff';
+import { UiButton } from '@meal/ui-kit';
 
 const route = useRoute();
 const router = useRouter();
@@ -163,7 +164,7 @@ function goPlanner(): void {
       </div>
       <p v-if="detail" class="period" data-testid="shopping-period">
         Период: {{ detail.from }} — {{ detail.to }}
-        <button type="button" class="linkish" @click="goPlanner">Изменить период</button>
+        <UiButton type="button" class="linkish" variant="secondary" size="sm" @click="goPlanner">Изменить период</UiButton>
       </p>
     </header>
 
@@ -173,12 +174,12 @@ function goPlanner(): void {
     <template v-else-if="detail">
       <div v-if="showEmpty" class="empty soft" data-testid="shopping-empty-state">
         <p>За период не было назначений — можно добавить продукты вручную или вернуться в планировщик.</p>
-        <button type="button" class="btn secondary" @click="goPlanner">Планировщик</button>
+        <UiButton type="button" variant="secondary" @click="goPlanner">Планировщик</UiButton>
       </div>
       <div class="toolbar">
-        <button type="button" class="btn secondary" data-testid="shopping-copy-list" @click="exportText">
+        <UiButton type="button" variant="secondary" data-testid="shopping-copy-list" @click="exportText">
           Копировать список
-        </button>
+        </UiButton>
       </div>
 
       <div v-for="g in grouped" :key="g.category" class="group" data-testid="shopping-group">
@@ -197,7 +198,7 @@ function goPlanner(): void {
               {{ line.quantity }} {{ line.unit ?? '' }}
             </span>
             <span v-if="line.mergeNote" class="muted">{{ line.mergeNote }}</span>
-            <button type="button" class="btn danger small" @click="removeLine(line)">Удалить</button>
+            <UiButton type="button" variant="danger" size="sm" @click="removeLine(line)">Удалить</UiButton>
           </li>
         </ul>
       </div>
@@ -209,7 +210,7 @@ function goPlanner(): void {
           <input v-model.number="manualQty" type="number" step="any" placeholder="Кол-во" />
           <input v-model="manualUnit" placeholder="Ед." />
           <input v-model="manualCat" placeholder="Категория" />
-          <button type="button" class="btn" @click="addManual">Добавить</button>
+          <UiButton type="button" @click="addManual">Добавить</UiButton>
         </div>
       </section>
     </template>

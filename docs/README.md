@@ -10,6 +10,7 @@
 | Ограниченные контексты, Event Storming, ubiquitous language | [domain-contexts-event-storming.md](./domain-contexts-event-storming.md) |
 | Архитектура, NFR, трассировка к ADR | [architecture-decision-context.md](./architecture-decision-context.md) |
 | Целевая solution architecture (сервисы, порты) | [solution-architecture.md](./solution-architecture.md) |
+| Единая frontend-архитектура (FSD, host/MFE ownership, shared packages, roadmap) | [frontend-architecture.md](./frontend-architecture.md) |
 | ADR (принятые решения) | [adr/README.md](./adr/README.md) |
 | UX-договорённости, этапы макета/прототипа | [design-plan.md](./design-plan.md) |
 | Figma: токены, компоненты, фреймы, прототип, синхронизация | [technical-spec-figma.md](./technical-spec-figma.md) |
@@ -27,6 +28,7 @@
 | Продуктовый UX и этапы дизайна (1–7) | [design-plan.md](./design-plan.md) |
 | Аудит и спецификация макета в Figma (`node id`, чеклист расхождений) | [technical-spec-figma.md](./technical-spec-figma.md) |
 | Состояние реализации UI в коде относительно Figma | [ui-parity-checklist.md](./ui-parity-checklist.md) |
+| Инженерные правила frontend реализации (FSD/UI kit/Storybook/tests/tokens) | [frontend-architecture.md](./frontend-architecture.md) |
 
 Матрица **сценарии × контексты × события** ведётся в одном месте: [domain-contexts-event-storming.md](./domain-contexts-event-storming.md) §4. Архитектурный контекст на неё ссылается, не копируя таблицу.
 

@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import type { RouteLocationNormalized } from 'vue-router';
 import { useSession } from '../composables/useSession';
 import HomeView from '../views/HomeView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
+import { APP_ROUTES } from '../app/routes';
+import { routeRequiresAuth } from './route-guard';
 
 const RecipesLibrary = () => import('mf_recipes/Library');
 const RecipesImport = () => import('mf_recipes/ImportView');
@@ -12,29 +13,19 @@ const RecipeForm = () => import('mf_recipes/RecipeForm');
 const PlannerPage = () => import('mf_planner/PlannerPage');
 const ShoppingPage = () => import('mf_shopping/ShoppingPage');
 
-function routeRequiresAuth(to: RouteLocationNormalized): boolean {
-  const p = to.path;
-  if (p === '/' || p === '/login' || p === '/register') {
-    return false;
-  }
-  return (
-    p.startsWith('/recipes') || p.startsWith('/planner') || p.startsWith('/shopping')
-  );
-}
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'home', component: HomeView },
-    { path: '/login', name: 'login', component: LoginView },
-    { path: '/register', name: 'register', component: RegisterView },
-    { path: '/recipes', name: 'recipes', component: RecipesLibrary },
-    { path: '/recipes/import', name: 'recipes-import', component: RecipesImport },
-    { path: '/recipes/new', name: 'recipe-new', component: RecipeForm },
-    { path: '/recipes/:id/edit', name: 'recipe-edit', component: RecipeForm },
-    { path: '/recipes/:id', name: 'recipe-detail', component: RecipeDetail },
-    { path: '/planner', name: 'planner', component: PlannerPage },
-    { path: '/shopping/:listId', name: 'shopping', component: ShoppingPage },
+    { path: APP_ROUTES.HOME, name: 'home', component: HomeView },
+    { path: APP_ROUTES.LOGIN, name: 'login', component: LoginView },
+    { path: APP_ROUTES.REGISTER, name: 'register', component: RegisterView },
+    { path: APP_ROUTES.RECIPES, name: 'recipes', component: RecipesLibrary, meta: { requiresAuth: true } },
+    { path: APP_ROUTES.RECIPES_IMPORT, name: 'recipes-import', component: RecipesImport, meta: { requiresAuth: true } },
+    { path: APP_ROUTES.RECIPES_NEW, name: 'recipe-new', component: RecipeForm, meta: { requiresAuth: true } },
+    { path: APP_ROUTES.RECIPE_EDIT, name: 'recipe-edit', component: RecipeForm, meta: { requiresAuth: true } },
+    { path: APP_ROUTES.RECIPE_DETAIL, name: 'recipe-detail', component: RecipeDetail, meta: { requiresAuth: true } },
+    { path: APP_ROUTES.PLANNER, name: 'planner', component: PlannerPage, meta: { requiresAuth: true } },
+    { path: APP_ROUTES.SHOPPING, name: 'shopping', component: ShoppingPage, meta: { requiresAuth: true } },
   ],
 });
 

@@ -1,6 +1,6 @@
 # Frontend: Vue 3 + Module Federation
 
-Монорепозиторий **npm workspaces**: пакеты `@meal/ui-tokens`, `@meal/bff-client` и приложения в `apps/`.
+Монорепозиторий **npm workspaces**: пакеты `@meal/ui-tokens`, `@meal/ui-kit`, `@meal/bff-client` и приложения в `apps/`.
 
 | Приложение | Порт dev | Роль |
 |------------|----------|------|
@@ -18,6 +18,21 @@ npm run build
 ```
 
 `postinstall` собирает `packages/ui-tokens` (копирует `tokens.css` в `dist/`).
+
+## UI kit, Storybook и тесты
+
+```bash
+cd frontend
+npm run storybook
+```
+
+Команды качества:
+
+- `npm run test:unit` — unit/component tests (`vitest`) для `ui-kit` и host route guard.
+- `npm run test:screenshots` — screenshot checks (`playwright`) по Storybook stories.
+- `npm run storybook:build` — статическая сборка Storybook.
+
+Базовые shared-компоненты находятся в `packages/ui-kit`, stories — в `packages/ui-kit/src/*.stories.ts`.
 
 ## Локальная разработка с микрофронтами
 

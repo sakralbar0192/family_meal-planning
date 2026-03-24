@@ -71,3 +71,17 @@
 1. Сделать финальный parity-pass по auth-экранам в `host`.
 2. Добавить e2e-скриншотные проверки на 3 ширинах: mobile/tablet/desktop.
 3. При значимых правках Figma повторно сверять с `technical-spec-figma.md` и обновлять этот чеклист.
+
+## Migration checklist (Wave execution)
+
+- Wave 1:
+  - shared primitives вынесены в `frontend/packages/ui-kit`;
+  - на каждый публичный компонент есть story + unit test + screenshot check;
+  - стили shared-компонентов используют семантические токены.
+- Wave 2:
+  - host и каждый MFE имеют минимум один мигрированный vertical slice;
+  - удалены локальные дубли `button/input/modal` в мигрированных срезах;
+  - BFF access в приложениях использует shared adapter policy.
+- Wave 3:
+  - CI блокирует PR при падении frontend unit/screenshot/e2e checks;
+  - остаточные parity-расхождения не блокируют ключевые UX-сценарии.

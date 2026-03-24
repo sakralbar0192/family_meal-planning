@@ -13,6 +13,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { MEAL_SLOT_LABELS } from './mealSlots';
 import { useBff } from './useBff';
+import { UiButton } from '@meal/ui-kit';
 
 const route = useRoute();
 const router = useRouter();
@@ -368,10 +369,10 @@ function nextMonth(): void {
         <h2>Планировщик</h2>
       </div>
       <div class="row">
-        <button type="button" class="btn secondary" @click="shiftWeek(-7)">← Неделя</button>
+        <UiButton type="button" variant="secondary" @click="shiftWeek(-7)">← Неделя</UiButton>
         <span class="muted" data-testid="planner-week-range">{{ week?.weekStart }} — {{ week?.weekEnd }}</span>
-        <button type="button" class="btn secondary" @click="shiftWeek(7)">Неделя →</button>
-        <button type="button" class="btn secondary" @click="openCalendar">Календарь месяца</button>
+        <UiButton type="button" variant="secondary" @click="shiftWeek(7)">Неделя →</UiButton>
+        <UiButton type="button" variant="secondary" @click="openCalendar">Календарь месяца</UiButton>
         <RouterLink class="btn secondary" to="/recipes">Библиотека</RouterLink>
       </div>
     </header>
@@ -387,17 +388,16 @@ function nextMonth(): void {
           По
           <input v-model="shoppingTo" type="date" data-testid="planner-shopping-date-to" />
         </label>
-        <button type="button" class="btn secondary" @click="presetWeek">Текущая неделя</button>
-        <button type="button" class="btn secondary" @click="presetTodaySunday">Сегодня — вс</button>
-        <button
+        <UiButton type="button" variant="secondary" @click="presetWeek">Текущая неделя</UiButton>
+        <UiButton type="button" variant="secondary" @click="presetTodaySunday">Сегодня — вс</UiButton>
+        <UiButton
           type="button"
-          class="btn"
           data-testid="planner-build-shopping-list"
           :disabled="buildBusy"
           @click="buildShopping"
         >
           {{ buildBusy ? '…' : 'Сформировать список покупок' }}
-        </button>
+        </UiButton>
       </div>
       <p v-if="buildError" class="err">{{ buildError }}</p>
     </section>
@@ -419,7 +419,7 @@ function nextMonth(): void {
         <ul class="rec-list" data-testid="planner-sidebar-recipes">
           <li v-for="r in sidebarRecipes" :key="r.id" :data-recipe-id="r.id" data-testid="planner-sidebar-recipe-row">
             <span>{{ r.title }}</span>
-            <button type="button" class="btn small" @click="addRecipeToActiveSlot(r.id)">В слот</button>
+            <UiButton type="button" size="sm" @click="addRecipeToActiveSlot(r.id)">В слот</UiButton>
           </li>
         </ul>
       </aside>
@@ -457,9 +457,9 @@ function nextMonth(): void {
     <div v-if="monthOpen" class="modal-backdrop" @click.self="monthOpen = false">
       <div class="modal cal">
         <div class="cal-nav">
-          <button type="button" class="btn secondary" @click="prevMonth">←</button>
+          <UiButton type="button" variant="secondary" @click="prevMonth">←</UiButton>
           <strong>{{ calLabel }}</strong>
-          <button type="button" class="btn secondary" @click="nextMonth">→</button>
+          <UiButton type="button" variant="secondary" @click="nextMonth">→</UiButton>
         </div>
         <div class="dow">
           <span v-for="d in ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']" :key="d">{{ d }}</span>
@@ -476,7 +476,7 @@ function nextMonth(): void {
             {{ c.d ?? '' }}
           </button>
         </div>
-        <button type="button" class="btn secondary" @click="monthOpen = false">Закрыть</button>
+        <UiButton type="button" variant="secondary" @click="monthOpen = false">Закрыть</UiButton>
       </div>
     </div>
   </section>

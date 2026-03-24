@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { UiButton, UiInput } from '@meal/ui-kit';
 import { useSession } from '../composables/useSession';
 
 const router = useRouter();
@@ -37,30 +38,27 @@ async function onSubmit(): Promise<void> {
     <h2>Вход</h2>
     <form class="form" @submit.prevent="onSubmit">
       <label class="field">
-        <span>Email</span>
-        <input
+        <UiInput
           v-model="email"
+          label="Email"
           type="email"
-          autocomplete="username"
-          required
+          placeholder="user@example.com"
           data-testid="login-email"
         />
       </label>
       <label class="field">
-        <span>Пароль</span>
-        <input
+        <UiInput
           v-model="password"
+          label="Пароль"
           type="password"
-          autocomplete="current-password"
-          required
-          minlength="8"
+          placeholder="********"
           data-testid="login-password"
         />
       </label>
       <p v-if="error" class="err" data-testid="login-error">{{ error }}</p>
-      <button type="submit" class="btn" :disabled="busy" data-testid="login-submit">
+      <UiButton type="submit" :disabled="busy" data-testid="login-submit">
         {{ busy ? '…' : 'Войти' }}
-      </button>
+      </UiButton>
     </form>
     <p class="hint">
       Нет аккаунта?
@@ -103,36 +101,10 @@ h2 {
   font-size: var(--font-size-caption);
   color: var(--color-text-secondary);
 }
-.field input {
-  min-height: var(--input-min-height);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-body);
-}
 .err {
   margin: 0;
   color: var(--color-error);
   font-size: var(--font-size-caption);
-}
-.btn {
-  min-height: var(--button-min-height);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn:hover {
-  background: var(--color-accent-hover);
-}
-.btn:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 .hint {
   margin: var(--space-sm) 0 0;
