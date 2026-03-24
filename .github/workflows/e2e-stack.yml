@@ -52,6 +52,7 @@ jobs:
       - name: Build frontend with MF URLs for preview
         working-directory: frontend
         env:
+          VITE_BFF_BASE_URL: http://127.0.0.1:8080/bff/v1
           VITE_MF_RECIPES_URL: http://127.0.0.1:5174/assets/remoteEntry.js
           VITE_MF_PLANNER_URL: http://127.0.0.1:5175/assets/remoteEntry.js
           VITE_MF_SHOPPING_URL: http://127.0.0.1:5176/assets/remoteEntry.js

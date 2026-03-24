@@ -173,7 +173,7 @@ function findSlot(slotId: string): SlotAssignment | null {
   return null;
 }
 
-async function patchSlot(slot: SlotAssignment, recipeIds: string[]): Promise<void> {
+async function patchSlot(slot: SlotAssignment, recipeIds: string[], isRetry = false): Promise<void> {
   slotError.value = '';
   const res = await bff.fetch(`/plan/slots/${slot.slotId}`, {
     method: 'PATCH',
@@ -181,6 +181,17 @@ async function patchSlot(slot: SlotAssignment, recipeIds: string[]): Promise<voi
   });
   if (!res.ok) {
     const err = await bffErrorFromResponse(res);
+    if (err.code === 'VERSION_CONFLICT' && !isRetry) {
+      await loadWeek();
+      const refreshed = findSlot(slot.slotId);
+      if (!refreshed) {
+        slotError.value =
+          'Данные плана устарели (другое окно или вкладка). Обновите страницу и повторите действие.';
+        return;
+      }
+      await patchSlot(refreshed, recipeIds, true);
+      return;
+    }
     if (err.code === 'VERSION_CONFLICT') {
       slotError.value =
         'Данные плана устарели (другое окно или вкладка). Обновляем неделю — повторите действие.';
@@ -355,7 +366,7 @@ function nextMonth(): void {
       <h2>Планировщик</h2>
       <div class="row">
         <button type="button" class="btn secondary" @click="shiftWeek(-7)">← Неделя</button>
-        <span class="muted">{{ week?.weekStart }} — {{ week?.weekEnd }}</span>
+        <span class="muted" data-testid="planner-week-range">{{ week?.weekStart }} — {{ week?.weekEnd }}</span>
         <button type="button" class="btn secondary" @click="shiftWeek(7)">Неделя →</button>
         <button type="button" class="btn secondary" @click="openCalendar">Календарь месяца</button>
         <RouterLink class="btn secondary" to="/recipes">Библиотека</RouterLink>
@@ -367,15 +378,21 @@ function nextMonth(): void {
       <div class="shop-row">
         <label>
           С
-          <input v-model="shoppingFrom" type="date" />
+          <input v-model="shoppingFrom" type="date" data-testid="planner-shopping-date-from" />
         </label>
         <label>
           По
-          <input v-model="shoppingTo" type="date" />
+          <input v-model="shoppingTo" type="date" data-testid="planner-shopping-date-to" />
         </label>
         <button type="button" class="btn secondary" @click="presetWeek">Текущая неделя</button>
         <button type="button" class="btn secondary" @click="presetTodaySunday">Сегодня — вс</button>
-        <button type="button" class="btn" :disabled="buildBusy" @click="buildShopping">
+        <button
+          type="button"
+          class="btn"
+          data-testid="planner-build-shopping-list"
+          :disabled="buildBusy"
+          @click="buildShopping"
+        >
           {{ buildBusy ? '…' : 'Сформировать список покупок' }}
         </button>
       </div>
@@ -392,12 +409,12 @@ function nextMonth(): void {
         <input v-model="sidebarSearch" type="search" placeholder="Поиск" />
         <label class="slot-pick">
           Слот для добавления
-          <select v-model="activeSlotId">
+          <select v-model="activeSlotId" data-testid="planner-active-slot">
             <option v-for="o in slotOptions" :key="o.id" :value="o.id">{{ o.label }}</option>
           </select>
         </label>
-        <ul class="rec-list">
-          <li v-for="r in sidebarRecipes" :key="r.id">
+        <ul class="rec-list" data-testid="planner-sidebar-recipes">
+          <li v-for="r in sidebarRecipes" :key="r.id" :data-recipe-id="r.id" data-testid="planner-sidebar-recipe-row">
             <span>{{ r.title }}</span>
             <button type="button" class="btn small" @click="addRecipeToActiveSlot(r.id)">В слот</button>
           </li>

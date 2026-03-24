@@ -158,7 +158,7 @@ function goPlanner(): void {
     <header class="head">
       <RouterLink class="back" to="/planner">← Планировщик</RouterLink>
       <h2>Список покупок</h2>
-      <p v-if="detail" class="period">
+      <p v-if="detail" class="period" data-testid="shopping-period">
         Период: {{ detail.from }} — {{ detail.to }}
         <button type="button" class="linkish" @click="goPlanner">Изменить период</button>
       </p>
@@ -168,18 +168,20 @@ function goPlanner(): void {
     <p v-else-if="error" class="err">{{ error }}</p>
 
     <template v-else-if="detail">
-      <div v-if="showEmpty" class="empty soft">
+      <div v-if="showEmpty" class="empty soft" data-testid="shopping-empty-state">
         <p>За период не было назначений — можно добавить продукты вручную или вернуться в планировщик.</p>
         <button type="button" class="btn secondary" @click="goPlanner">Планировщик</button>
       </div>
       <div class="toolbar">
-        <button type="button" class="btn secondary" @click="exportText">Копировать список</button>
+        <button type="button" class="btn secondary" data-testid="shopping-copy-list" @click="exportText">
+          Копировать список
+        </button>
       </div>
 
-      <div v-for="g in grouped" :key="g.category" class="group">
+      <div v-for="g in grouped" :key="g.category" class="group" data-testid="shopping-group">
         <h3>{{ g.category }}</h3>
         <ul class="lines">
-          <li v-for="line in g.lines" :key="line.lineId" class="line">
+          <li v-for="line in g.lines" :key="line.lineId" class="line" data-testid="shopping-line">
             <label class="check">
               <input
                 type="checkbox"

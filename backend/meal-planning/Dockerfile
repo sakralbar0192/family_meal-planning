@@ -6,7 +6,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /meal-planning ./cmd/server
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates curl
 COPY --from=build /meal-planning /usr/local/bin/meal-planning
 ENV LISTEN_ADDR=:8084
 EXPOSE 8084

@@ -1,14 +1,5 @@
-import { test, expect, type APIRequestContext } from '@playwright/test';
-
-async function isBffHealthy(request: APIRequestContext): Promise<boolean> {
-  const base = (process.env.E2E_BFF_BASE_URL ?? 'http://localhost:8080/bff/v1').replace(/\/$/, '');
-  try {
-    const res = await request.get(`${base}/health`, { timeout: 5000 });
-    return res.status() === 200;
-  } catch {
-    return false;
-  }
-}
+import { test, expect } from '@playwright/test';
+import { isBffHealthy, requiresBff } from '../helpers/bff';
 
 /**
  * Сквозной UI: регистрация + авто-вход (см. host RegisterView).
@@ -17,7 +8,7 @@ async function isBffHealthy(request: APIRequestContext): Promise<boolean> {
 test.describe('auth UI', () => {
   test('регистрация показывает баннер сессии', async ({ page, request }) => {
     const healthy = await isBffHealthy(request);
-    const requireBff = process.env.E2E_FULL_STACK === '1' || process.env.E2E_REQUIRE_BFF === '1';
+    const requireBff = requiresBff();
     if (!healthy && requireBff) {
       expect(healthy, 'В режиме full-stack BFF должен отвечать на /health').toBe(true);
       return;

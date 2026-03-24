@@ -105,6 +105,12 @@ services:
     depends_on:
       postgres-catalog:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8082/api/catalog/v1/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 25
+      start_period: 25s
     environment:
       APP_ENV: dev
       APP_SECRET: dev-secret
@@ -132,6 +138,12 @@ services:
     depends_on:
       postgres-planning:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8084/api/planning/v1/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 25
+      start_period: 15s
     environment:
       INTERNAL_AUTH_TOKEN: dev-internal-token
       LISTEN_ADDR: ":8084"
@@ -146,9 +158,9 @@ services:
       postgres-shopping:
         condition: service_healthy
       meal-planning:
-        condition: service_started
+        condition: service_healthy
       recipe-catalog:
-        condition: service_started
+        condition: service_healthy
     environment:
       APP_ENV: dev
       APP_SECRET: dev-secret
@@ -168,11 +180,11 @@ services:
       identity-access:
         condition: service_healthy
       recipe-catalog:
-        condition: service_started
+        condition: service_healthy
       recipe-import:
         condition: service_started
       meal-planning:
-        condition: service_started
+        condition: service_healthy
       shopping-list:
         condition: service_started
     healthcheck:
