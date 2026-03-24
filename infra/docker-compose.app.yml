@@ -166,6 +166,7 @@ services:
     environment:
       APP_ENV: dev
       APP_SECRET: dev-secret
+      BFF_CORS_ALLOW_ORIGIN: "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://127.0.0.1:5176"
       INTERNAL_AUTH_TOKEN: dev-internal-token
       IAM_BASE_URI: http://identity-access:8081/api/iam/v1
       IMPORT_BASE_URI: http://recipe-import:8083/api/import/v1

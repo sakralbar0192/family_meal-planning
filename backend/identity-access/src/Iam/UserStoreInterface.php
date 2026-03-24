@@ -14,4 +14,11 @@ interface UserStoreInterface
      * @return array{userId: string, passwordHash: string}|null
      */
     public function findByEmail(string $email): ?array;
+
+    /**
+     * @return array{userId: string, passwordHash: string}|null
+     */
+    public function findByUserId(string $userId): ?array;
+
+    public function updatePasswordHash(string $userId, string $passwordHash): bool;
 }

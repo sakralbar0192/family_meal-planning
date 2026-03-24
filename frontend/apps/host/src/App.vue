@@ -1,43 +1,43 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue';
+import { useSession } from './composables/useSession';
 
-const RecipesRemote = defineAsyncComponent(() => import('mf_recipes/Entry'));
-const PlannerRemote = defineAsyncComponent(() => import('mf_planner/Entry'));
-const ShoppingRemote = defineAsyncComponent(() => import('mf_shopping/Entry'));
+const { isLoggedIn, logout } = useSession();
+
+async function onLogout(): Promise<void> {
+  await logout();
+}
 </script>
 
 <template>
   <div class="shell">
     <header class="top">
-      <h1>Планировщик питания</h1>
-      <p class="sub">
-        Host + Module Federation. Для разработки поднимите remotes: см.
-        frontend/README.md
-      </p>
+      <div class="head-row">
+        <div>
+          <h1>Планировщик питания</h1>
+          <p class="sub">
+            Host + Module Federation. Remotes: см. frontend/README.md
+          </p>
+        </div>
+        <nav class="nav" aria-label="Аккаунт">
+          <template v-if="isLoggedIn">
+            <button
+              type="button"
+              class="linkish"
+              data-testid="logout-button"
+              @click="onLogout"
+            >
+              Выйти
+            </button>
+          </template>
+          <template v-else>
+            <RouterLink to="/login" data-testid="nav-login">Вход</RouterLink>
+            <RouterLink to="/register" data-testid="nav-register">Регистрация</RouterLink>
+          </template>
+        </nav>
+      </div>
     </header>
 
-    <main class="grid">
-      <Suspense>
-        <RecipesRemote />
-        <template #fallback>
-          <p class="fallback">Загрузка mf-recipes…</p>
-        </template>
-      </Suspense>
-
-      <Suspense>
-        <PlannerRemote />
-        <template #fallback>
-          <p class="fallback">Загрузка mf-planner…</p>
-        </template>
-      </Suspense>
-
-      <Suspense>
-        <ShoppingRemote />
-        <template #fallback>
-          <p class="fallback">Загрузка mf-shopping…</p>
-        </template>
-      </Suspense>
-    </main>
+    <RouterView />
   </div>
 </template>
 
@@ -52,6 +52,13 @@ const ShoppingRemote = defineAsyncComponent(() => import('mf_shopping/Entry'));
 .top {
   margin-bottom: var(--space-xl);
 }
+.head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
 h1 {
   margin: 0 0 var(--space-sm);
   font-size: var(--font-size-heading);
@@ -62,19 +69,28 @@ h1 {
   color: var(--color-text-secondary);
   font-size: var(--font-size-body);
 }
-.grid {
-  display: grid;
-  gap: var(--space-lg);
-  grid-template-columns: 1fr;
-}
-@media (min-width: 900px) {
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-.fallback {
-  padding: var(--space-lg);
-  color: var(--color-text-muted);
+.nav {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
   font-size: var(--font-size-body);
+}
+.nav a {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.nav a.router-link-active {
+  text-decoration: underline;
+}
+.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-decoration: underline;
 }
 </style>

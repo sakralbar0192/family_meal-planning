@@ -17,6 +17,26 @@ final class AuthController extends BaseProxyController
     ) {
     }
 
+    #[Route('/bff/v1/auth/register', name: 'bff_auth_register', methods: ['POST'])]
+    public function register(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = $request->toArray();
+        $upstream = $this->internalApiClient->post($request, $this->iamBaseUri, '/users/register', $payload);
+
+        return $this->toJsonResponse($upstream);
+    }
+
+    #[Route('/bff/v1/auth/password', name: 'bff_auth_password', methods: ['POST'])]
+    public function changePassword(Request $request): JsonResponse
+    {
+        /** @var array<string, mixed> $payload */
+        $payload = $request->toArray();
+        $upstream = $this->internalApiClient->patch($request, $this->iamBaseUri, '/users/me/password', $payload);
+
+        return $this->toJsonResponse($upstream);
+    }
+
     #[Route('/bff/v1/auth/login', name: 'bff_auth_login', methods: ['POST'])]
     public function login(Request $request): JsonResponse
     {

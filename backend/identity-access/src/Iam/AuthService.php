@@ -57,11 +57,29 @@ final class AuthService
         return $this->sessions->delete($sessionId);
     }
 
+    public function changePassword(string $userId, string $currentPassword, string $newPassword): void
+    {
+        $this->validateNewPassword($newPassword);
+        $row = $this->users->findByUserId($userId);
+        if ($row === null) {
+            throw new UnauthorizedHttpException('', 'User not found.');
+        }
+        if (!\password_verify($currentPassword, $row['passwordHash'])) {
+            throw new BadRequestHttpException('Invalid current password.');
+        }
+        $this->users->updatePasswordHash($userId, \password_hash($newPassword, PASSWORD_DEFAULT));
+    }
+
     private function validateEmailPassword(string $email, string $password): void
     {
         if (!\filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new BadRequestHttpException('Invalid email format.');
         }
+        $this->validateNewPassword($password);
+    }
+
+    private function validateNewPassword(string $password): void
+    {
         if (\mb_strlen($password) < 8) {
             throw new BadRequestHttpException('Password must be at least 8 characters.');
         }

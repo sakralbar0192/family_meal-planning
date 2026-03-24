@@ -16,7 +16,8 @@ final class CorrelationIdSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => 'onRequest',
+            // Run before SessionGuardSubscriber (priority 10) so IAM session validation gets X-Correlation-Id.
+            KernelEvents::REQUEST => ['onRequest', 20],
             KernelEvents::RESPONSE => 'onResponse',
         ];
     }

@@ -7,6 +7,8 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    env(BFF_CORS_ALLOW_ORIGIN): ''
+    app.cors_allow_origin: '%env(string:BFF_CORS_ALLOW_ORIGIN)%'
     app.internal_auth_token: '%env(INTERNAL_AUTH_TOKEN)%'
     app.iam_base_uri: '%env(IAM_BASE_URI)%'
     app.import_base_uri: '%env(IMPORT_BASE_URI)%'
@@ -28,6 +30,10 @@ services:
     App\Bff\InternalApiClient:
         arguments:
             $internalAuth: '%app.internal_auth_token%'
+
+    App\Bff\CorsSubscriber:
+        arguments:
+            $allowedOriginsCsv: '%app.cors_allow_origin%'
 
     App\Bff\SessionGuardSubscriber:
         arguments:

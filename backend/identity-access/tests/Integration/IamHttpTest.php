@@ -66,6 +66,27 @@ final class IamHttpTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testChangePasswordWithTrustedUserHeader(): void
+    {
+        $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_X_INTERNAL_AUTH' => 'dev-internal-token'];
+
+        $this->client->request('POST', '/api/iam/v1/users/register', server: $headers, content: '{"email":"pw@example.com","password":"oldsecret12"}');
+        self::assertResponseStatusCodeSame(201);
+        $register = \json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $userId = $register['userId'];
+
+        $this->client->request(
+            'PATCH',
+            '/api/iam/v1/users/me/password',
+            server: \array_merge($headers, ['HTTP_X_USER_ID' => $userId]),
+            content: '{"currentPassword":"oldsecret12","newPassword":"newsecret12"}'
+        );
+        self::assertResponseStatusCodeSame(204);
+
+        $this->client->request('POST', '/api/iam/v1/sessions', server: $headers, content: '{"email":"pw@example.com","password":"newsecret12"}');
+        self::assertResponseStatusCodeSame(200);
+    }
+
     public function testHealthReturns200WhenDependenciesUp(): void
     {
         $this->client->request('GET', '/api/iam/v1/health');

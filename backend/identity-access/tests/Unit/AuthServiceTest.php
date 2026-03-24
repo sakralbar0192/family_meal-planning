@@ -6,6 +6,7 @@ use App\Iam\AuthService;
 use App\Iam\SessionStoreInterface;
 use App\Iam\UserStoreInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
@@ -46,6 +47,33 @@ final class AuthServiceTest extends TestCase
         $this->expectException(UnauthorizedHttpException::class);
         $service->createSession('user@example.com', 'badpass123');
     }
+
+    public function testChangePasswordUpdatesHash(): void
+    {
+        $users = new InMemoryUserStore();
+        $sessions = new InMemorySessionStore();
+        $service = new AuthService($users, $sessions);
+        $userId = $service->register('user@example.com', 'secret123');
+
+        $service->changePassword($userId, 'secret123', 'newsecret12');
+
+        $session = $service->createSession('user@example.com', 'newsecret12');
+        self::assertArrayHasKey('sessionId', $session);
+
+        $this->expectException(UnauthorizedHttpException::class);
+        $service->createSession('user@example.com', 'secret123');
+    }
+
+    public function testChangePasswordFailsOnWrongCurrent(): void
+    {
+        $users = new InMemoryUserStore();
+        $sessions = new InMemorySessionStore();
+        $service = new AuthService($users, $sessions);
+        $userId = $service->register('user@example.com', 'secret123');
+
+        $this->expectException(BadRequestHttpException::class);
+        $service->changePassword($userId, 'wrongpass1', 'newsecret12');
+    }
 }
 
 final class InMemoryUserStore implements UserStoreInterface
@@ -73,6 +101,30 @@ final class InMemoryUserStore implements UserStoreInterface
     public function findByEmail(string $email): ?array
     {
         return $this->users[\mb_strtolower($email)] ?? null;
+    }
+
+    public function findByUserId(string $userId): ?array
+    {
+        foreach ($this->users as $row) {
+            if ($row['userId'] === $userId) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    public function updatePasswordHash(string $userId, string $passwordHash): bool
+    {
+        foreach ($this->users as $email => $row) {
+            if ($row['userId'] === $userId) {
+                $this->users[$email] = ['userId' => $userId, 'passwordHash' => $passwordHash];
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 

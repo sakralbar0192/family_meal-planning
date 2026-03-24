@@ -30,6 +30,67 @@ final class BffFlowTest extends WebTestCase
         self::assertSame('AUTH_REQUIRED', $body['code']);
     }
 
+    public function testRegisterProxiesToIam(): void
+    {
+        FakeUpstreamHttpClient::queueResponses([
+            [
+                'method' => 'POST',
+                'url' => 'http://localhost:8081/api/iam/v1/users/register',
+                'status' => 201,
+                'body' => '{"userId":"c3f11572-1d8b-4f6b-86d0-3f4f74f2f265"}',
+            ],
+        ]);
+
+        $client = static::createClient();
+        $client->request(
+            'POST',
+            '/bff/v1/auth/register',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"email":"new@example.com","password":"secret123"}'
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        $body = \json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('c3f11572-1d8b-4f6b-86d0-3f4f74f2f265', $body['userId']);
+    }
+
+    public function testChangePasswordProxiesPatchToIam(): void
+    {
+        FakeUpstreamHttpClient::queueResponses([
+            [
+                'method' => 'GET',
+                'url' => 'http://localhost:8081/api/iam/v1/sessions/sess-123',
+                'status' => 200,
+                'body' => '{"userId":"24f74de4-a50f-4eb4-b336-44f10a158ad4"}',
+            ],
+            [
+                'method' => 'PATCH',
+                'url' => 'http://localhost:8081/api/iam/v1/users/me/password',
+                'status' => 204,
+                'body' => '',
+            ],
+        ]);
+
+        $client = static::createClient();
+        $client->getCookieJar()->set(new Cookie('session_id', 'sess-123'));
+        $client->request(
+            'POST',
+            '/bff/v1/auth/password',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"currentPassword":"old-secret12","newPassword":"new-secret12"}'
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NO_CONTENT);
+
+        $calls = FakeUpstreamHttpClient::calls();
+        self::assertCount(2, $calls);
+        self::assertSame('PATCH', $calls[1]['method']);
+        $opts = $calls[1]['options'];
+        $headers = $opts['normalized_headers'] ?? [];
+        $userLine = $headers['x-user-id'][0] ?? '';
+        self::assertStringContainsString('24f74de4-a50f-4eb4-b336-44f10a158ad4', $userLine);
+    }
+
     public function testLoginProxiesToIamAndSetsSessionCookie(): void
     {
         FakeUpstreamHttpClient::queueResponses([
@@ -95,6 +156,13 @@ final class BffFlowTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
         self::assertSame('56091445-08b7-4dfb-be2d-d0179f8cd9f2', $client->getResponse()->headers->get('X-Correlation-Id'));
 
+        $callsAfterImport = FakeUpstreamHttpClient::calls();
+        self::assertSame('GET', $callsAfterImport[0]['method']);
+        self::assertSame(
+            '56091445-08b7-4dfb-be2d-d0179f8cd9f2',
+            self::headerFromRequestOptions($callsAfterImport[0]['options'], 'x-correlation-id')
+        );
+
         $client->request(
             'POST',
             '/bff/v1/shopping/build',
@@ -134,5 +202,30 @@ final class BffFlowTest extends WebTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
         $body = \json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('2026-03-02', $body['weekStart']);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function headerFromRequestOptions(array $options, string $name): ?string
+    {
+        $lower = \strtolower($name);
+        if (isset($options['headers']) && \is_array($options['headers'])) {
+            $headers = \array_change_key_case($options['headers']);
+            if (isset($headers[$lower]) && \is_string($headers[$lower])) {
+                return $headers[$lower];
+            }
+        }
+
+        if (isset($options['normalized_headers'][$lower][0]) && \is_string($options['normalized_headers'][$lower][0])) {
+            $line = $options['normalized_headers'][$lower][0];
+            if (\str_contains($line, ': ')) {
+                return \explode(': ', $line, 2)[1];
+            }
+
+            return $line;
+        }
+
+        return null;
     }
 }

@@ -1,5 +1,9 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  readonly VITE_BFF_BASE_URL?: string;
+}
+
 declare module 'mf_recipes/Entry' {
   import type { DefineComponent } from 'vue';
   const c: DefineComponent;

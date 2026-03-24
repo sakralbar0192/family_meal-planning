@@ -1,0 +1,9 @@
+{
+  "name": "@meal/bff-client",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "license": "UNLICENSED"
+}

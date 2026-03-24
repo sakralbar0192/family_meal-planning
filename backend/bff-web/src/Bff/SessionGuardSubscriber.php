@@ -32,6 +32,10 @@ final class SessionGuardSubscriber implements EventSubscriberInterface
             return;
         }
 
+        if ($event->hasResponse()) {
+            return;
+        }
+
         $request = $event->getRequest();
         if (!$this->isProtectedRoute($request)) {
             return;
@@ -115,10 +119,22 @@ final class SessionGuardSubscriber implements EventSubscriberInterface
             return false;
         }
 
+        if ($request->isMethod(Request::METHOD_OPTIONS)) {
+            return false;
+        }
+
         if ($path === '/bff/v1/health') {
             return false;
         }
 
-        return !($path === '/bff/v1/auth/login' && $request->isMethod(Request::METHOD_POST));
+        if ($path === '/bff/v1/auth/login' && $request->isMethod(Request::METHOD_POST)) {
+            return false;
+        }
+
+        if ($path === '/bff/v1/auth/register' && $request->isMethod(Request::METHOD_POST)) {
+            return false;
+        }
+
+        return true;
     }
 }

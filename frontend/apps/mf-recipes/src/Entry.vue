@@ -1,7 +1,24 @@
+<script setup lang="ts">
+import { createBffClient, resolveBffBaseUrl } from '@meal/bff-client';
+import { onMounted, ref } from 'vue';
+
+const bffLine = ref('');
+onMounted(async () => {
+  const bff = createBffClient(resolveBffBaseUrl(import.meta.env.VITE_BFF_BASE_URL));
+  try {
+    await bff.json<{ status: string }>('/health');
+    bffLine.value = 'Запросы к BFF с credentials: include (проверка /health ok).';
+  } catch {
+    bffLine.value = 'BFF недоступен — поднимите стек или задайте VITE_BFF_BASE_URL.';
+  }
+});
+</script>
+
 <template>
   <section class="mf-root">
     <h2>Рецепты (mf-recipes)</h2>
     <p>Микрофронт: библиотека, редактор, импорт. API через BFF — см. contracts/bff-routes.md.</p>
+    <p v-if="bffLine" class="meta">{{ bffLine }}</p>
   </section>
 </template>
 
@@ -22,5 +39,10 @@ p {
   margin: 0;
   font-size: var(--font-size-body);
   color: var(--color-text-secondary);
+}
+.meta {
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
 }
 </style>

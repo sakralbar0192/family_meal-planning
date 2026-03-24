@@ -1,6 +1,6 @@
 # Frontend: Vue 3 + Module Federation
 
-Монорепозиторий **npm workspaces**: общий пакет `@meal/ui-tokens` и приложения в `apps/`.
+Монорепозиторий **npm workspaces**: пакеты `@meal/ui-tokens`, `@meal/bff-client` и приложения в `apps/`.
 
 | Приложение | Порт dev | Роль |
 |------------|----------|------|
@@ -38,4 +38,10 @@ Remotes должны отдавать `remoteEntry.js`. Варианты:
 
 ## BFF
 
-Запросы к API — только на BFF с `credentials: 'include'`. Маршруты: [contracts/bff-routes.md](../contracts/bff-routes.md).
+Запросы к API — только на BFF с `credentials: 'include'`. Маршруты и схемы: [contracts/bff-routes.md](../contracts/bff-routes.md), [bff.openapi.yaml](../contracts/openapi/bff.openapi.yaml).
+
+Общий клиент: пакет **`@meal/bff-client`** (`createBffClient`, `resolveBffBaseUrl`). Базовый URL по умолчанию `http://localhost:8080/bff/v1`; переопределение:
+
+- переменная **`VITE_BFF_BASE_URL`** (например в `.env.local` приложения).
+
+При разработке с Vite на портах 5173–5176 браузер ходит на другой origin (BFF на 8080): на **bff-web** задайте **`BFF_CORS_ALLOW_ORIGIN`** (CSV origin’ов, см. `backend/bff-web/.env` и `infra/docker-compose.app.yml`) — включаются `Access-Control-Allow-Origin` (echo), `Access-Control-Allow-Credentials: true` и ответ на `OPTIONS` preflight. Альтернатива — прокси Vite на BFF.

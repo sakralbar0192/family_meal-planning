@@ -8,6 +8,7 @@
     "preview": "vite preview --port 5174"
   },
   "dependencies": {
+    "@meal/bff-client": "*",
     "@meal/ui-tokens": "*",
     "vue": "^3.4.21",
     "vue-router": "^4.4.0"

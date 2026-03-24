@@ -30,6 +30,21 @@ final class SessionGuardSubscriberTest extends TestCase
         self::assertSame(401, $event->getResponse()?->getStatusCode());
     }
 
+    public function testRegisterRouteDoesNotRequireSession(): void
+    {
+        $subscriber = new SessionGuardSubscriber(
+            new MockHttpClient([new MockResponse('', ['http_code' => 500])]),
+            'http://iam.local/api/iam/v1',
+            'secret-token'
+        );
+        $request = Request::create('/bff/v1/auth/register', Request::METHOD_POST);
+        $event = new RequestEvent($this->kernel(), $request, HttpKernelInterface::MAIN_REQUEST);
+
+        $subscriber->onRequest($event);
+
+        self::assertNull($event->getResponse());
+    }
+
     public function testSetsUserIdOnValidSession(): void
     {
         $captured = null;

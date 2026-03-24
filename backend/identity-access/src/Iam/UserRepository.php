@@ -66,4 +66,34 @@ final class UserRepository implements UserStoreInterface
             'passwordHash' => (string) $row['password_hash'],
         ];
     }
+
+    /**
+     * @return array{userId: string, passwordHash: string}|null
+     */
+    public function findByUserId(string $userId): ?array
+    {
+        $stmt = $this->database->pdo()->prepare(
+            'SELECT user_id, password_hash FROM iam_users WHERE user_id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!\is_array($row)) {
+            return null;
+        }
+
+        return [
+            'userId' => (string) $row['user_id'],
+            'passwordHash' => (string) $row['password_hash'],
+        ];
+    }
+
+    public function updatePasswordHash(string $userId, string $passwordHash): bool
+    {
+        $stmt = $this->database->pdo()->prepare(
+            'UPDATE iam_users SET password_hash = :hash WHERE user_id = :id'
+        );
+        $stmt->execute(['hash' => $passwordHash, 'id' => $userId]);
+
+        return $stmt->rowCount() > 0;
+    }
 }
