@@ -15,6 +15,9 @@ func ExtractDraft(htmlDoc string, sourceURL string) (title string, steps []strin
 	}
 	title = findTitle(doc)
 	if title == "" {
+		title = findFirstH1(doc)
+	}
+	if title == "" {
 		return "", nil, nil
 	}
 	steps = []string{}
@@ -32,6 +35,29 @@ func findTitle(n *html.Node) string {
 		}
 	}
 	return ""
+}
+
+func findFirstH1(n *html.Node) string {
+	if n.Type == html.ElementNode && n.Data == "h1" {
+		return strings.TrimSpace(textContent(n))
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if t := findFirstH1(c); t != "" {
+			return t
+		}
+	}
+	return ""
+}
+
+func textContent(n *html.Node) string {
+	if n.Type == html.TextNode {
+		return n.Data
+	}
+	var b strings.Builder
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		b.WriteString(textContent(c))
+	}
+	return b.String()
 }
 
 // ReadAllString reads full body (caller limits size).

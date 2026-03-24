@@ -115,6 +115,7 @@ services:
     environment:
       INTERNAL_AUTH_TOKEN: dev-internal-token
       LISTEN_ADDR: ":8083"
+      # Список хостов для POST /import/url (CSV). Для MVP согласовать с business-doc; example.com — для локальных фикстур.
       IMPORT_ALLOWED_HOSTS: "127.0.0.1,localhost,example.com,www.example.com"
     ports:
       - "8083:8083"
@@ -163,6 +164,12 @@ services:
       - recipe-import
       - meal-planning
       - shopping-list
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/bff/v1/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
     environment:
       APP_ENV: dev
       APP_SECRET: dev-secret

@@ -1,0 +1,64 @@
+name: E2E full stack
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  e2e-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start Docker stack
+        run: |
+          docker compose -f infra/docker-compose.app.yml up -d --build --wait
+          sleep 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend with MF URLs for preview
+        working-directory: frontend
+        env:
+          VITE_MF_RECIPES_URL: http://127.0.0.1:5174/assets/remoteEntry.js
+          VITE_MF_PLANNER_URL: http://127.0.0.1:5175/assets/remoteEntry.js
+          VITE_MF_SHOPPING_URL: http://127.0.0.1:5176/assets/remoteEntry.js
+        run: npm ci && npm run build
+
+      - name: Start Vite previews (host + remotes)
+        working-directory: frontend
+        run: |
+          npm run preview --workspace=@meal/mf-recipes -- --host 127.0.0.1 &
+          npm run preview --workspace=@meal/mf-planner -- --host 127.0.0.1 &
+          npm run preview --workspace=@meal/mf-shopping -- --host 127.0.0.1 &
+          npm run preview --workspace=@meal/host -- --host 127.0.0.1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null 2>&1; then
+              echo "host preview up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "host preview did not start"
+          exit 1
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: Run E2E
+        working-directory: e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+          E2E_BFF_BASE_URL: http://127.0.0.1:8080/bff/v1
+        run: npm test
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f infra/docker-compose.app.yml down -v

@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { createBffClient, resolveBffBaseUrl } from '@meal/bff-client';
-import { defineAsyncComponent, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useSession } from '../composables/useSession';
-
-const RecipesRemote = defineAsyncComponent(() => import('mf_recipes/Entry'));
-const PlannerRemote = defineAsyncComponent(() => import('mf_planner/Entry'));
-const ShoppingRemote = defineAsyncComponent(() => import('mf_shopping/Entry'));
 
 const { isLoggedIn, refreshSession } = useSession();
 
@@ -36,28 +33,11 @@ onMounted(async () => {
       Войдите, чтобы работать с рецептами и планом.
     </p>
 
-    <main class="grid">
-      <Suspense>
-        <RecipesRemote />
-        <template #fallback>
-          <p class="fallback">Загрузка mf-recipes…</p>
-        </template>
-      </Suspense>
-
-      <Suspense>
-        <PlannerRemote />
-        <template #fallback>
-          <p class="fallback">Загрузка mf-planner…</p>
-        </template>
-      </Suspense>
-
-      <Suspense>
-        <ShoppingRemote />
-        <template #fallback>
-          <p class="fallback">Загрузка mf-shopping…</p>
-        </template>
-      </Suspense>
-    </main>
+    <nav v-if="isLoggedIn" class="tiles" aria-label="Разделы">
+      <RouterLink class="tile" to="/recipes">Рецепты</RouterLink>
+      <RouterLink class="tile" to="/planner">Планировщик</RouterLink>
+    </nav>
+    <p v-else class="hint muted">После входа откроются разделы «Рецепты» и «Планировщик».</p>
   </div>
 </template>
 
@@ -83,19 +63,29 @@ onMounted(async () => {
   color: var(--color-text-secondary);
   font-size: var(--font-size-body);
 }
-.grid {
-  display: grid;
-  gap: var(--space-lg);
-  grid-template-columns: 1fr;
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
 }
-@media (min-width: 900px) {
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.tile {
+  display: inline-flex;
+  padding: var(--space-lg) var(--space-xl);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-decoration: none;
 }
-.fallback {
-  padding: var(--space-lg);
+.tile:hover {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
+}
+.hint {
+  margin-top: var(--space-md);
+}
+.muted {
   color: var(--color-text-muted);
-  font-size: var(--font-size-body);
 }
 </style>

@@ -19,3 +19,14 @@ func TestExtractDraftEmpty(t *testing.T) {
 		t.Fatalf("expected empty title")
 	}
 }
+
+func TestExtractDraftH1Fallback(t *testing.T) {
+	htmlDoc := `<!doctype html><html><body><h1>  Soup from h1  </h1></body></html>`
+	title, steps, ing := ExtractDraft(htmlDoc, "https://example.com/r")
+	if title != "Soup from h1" {
+		t.Fatalf("title: %q", title)
+	}
+	if len(steps) != 0 || len(ing) != 0 {
+		t.Fatalf("expected empty steps/ingredients")
+	}
+}

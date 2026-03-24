@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router';
 import { useSession } from './composables/useSession';
 
 const { isLoggedIn, logout } = useSession();
@@ -18,8 +19,10 @@ async function onLogout(): Promise<void> {
             Host + Module Federation. Remotes: см. frontend/README.md
           </p>
         </div>
-        <nav class="nav" aria-label="Аккаунт">
+        <nav class="nav" aria-label="Основная навигация">
           <template v-if="isLoggedIn">
+            <RouterLink to="/recipes" data-testid="nav-recipes">Рецепты</RouterLink>
+            <RouterLink to="/planner" data-testid="nav-planner">Планировщик</RouterLink>
             <button
               type="button"
               class="linkish"

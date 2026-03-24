@@ -5,10 +5,10 @@
 1. Поднять бэкенд:
 
    ```bash
-   docker compose -f infra/docker-compose.app.yml up -d
+   docker compose -f infra/docker-compose.app.yml up -d --build --wait
    ```
 
-   Дождаться готовности сервисов (Postgres healthchecks, BFF на `http://localhost:8080`).
+   Флаг `--wait` дождётся **healthy** у сервисов с `healthcheck` (в т.ч. `bff-web` на `http://localhost:8080/bff/v1/health`). При необходимости дождитесь вручную остальных БД.
 
 2. Запустить фронт (host и при необходимости remotes на 5174–5176):
 
@@ -37,4 +37,6 @@
 
 ## CI
 
-Job `e2e` в `.github/workflows/ci.yml` выполняет тесты; при отсутствии полного стека ожидаются пропуски auth-сценариев. Для жёсткой проверки поднимайте compose локально или добавьте отдельный workflow с `services`/`docker compose`.
+Job `e2e` в [.github/workflows/ci.yml](../.github/workflows/ci.yml) выполняет тесты без Docker-стека; auth-сценарии **пропускаются**, если BFF недоступен.
+
+Полный прогон (compose + сборка MF + `vite preview` + Playwright): workflow [.github/workflows/e2e-stack.yml](../.github/workflows/e2e-stack.yml) — по расписанию и вручную (**Actions → E2E full stack → Run workflow**).

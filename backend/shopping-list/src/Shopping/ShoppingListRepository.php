@@ -126,6 +126,7 @@ final class ShoppingListRepository
             'listId' => $row['id'],
             'from' => $row['period_from'],
             'to' => $row['period_to'],
+            'empty' => $lines === [],
             'lines' => $lines,
         ];
     }

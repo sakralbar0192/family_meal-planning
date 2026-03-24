@@ -10,6 +10,10 @@ export default defineConfig({
       filename: 'remoteEntry.js',
       exposes: {
         './Entry': './src/Entry.vue',
+        './Library': './src/Library.vue',
+        './ImportView': './src/ImportView.vue',
+        './RecipeDetail': './src/RecipeDetail.vue',
+        './RecipeForm': './src/RecipeForm.vue',
       },
       shared: {
         vue: { singleton: true, requiredVersion: '^3.4.0' },

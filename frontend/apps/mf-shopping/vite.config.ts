@@ -10,6 +10,7 @@ export default defineConfig({
       filename: 'remoteEntry.js',
       exposes: {
         './Entry': './src/Entry.vue',
+        './ShoppingPage': './src/ShoppingPage.vue',
       },
       shared: {
         vue: { singleton: true, requiredVersion: '^3.4.0' },

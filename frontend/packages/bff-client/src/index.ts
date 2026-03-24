@@ -3,6 +3,8 @@
  * (см. contracts/bff-routes.md, contracts/openapi/bff.openapi.yaml).
  */
 
+export * from './bff-types';
+
 export type BffClient = {
   fetch(path: string, init?: RequestInit): Promise<Response>;
   json<T>(path: string, init?: RequestInit): Promise<T>;
@@ -38,6 +40,22 @@ export function resolveBffBaseUrl(envValue?: string): string {
     return normalizeBase(envValue);
   }
   return DEFAULT_BASE;
+}
+
+/** Собрать path с query для BFF (значения пустые пропускаются). */
+export function bffPath(path: string, query?: Record<string, string | number | undefined>): string {
+  if (!query) {
+    return path.startsWith('/') ? path : `/${path}`;
+  }
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v !== undefined && v !== '') {
+      u.set(k, String(v));
+    }
+  }
+  const q = u.toString();
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return q ? `${p}?${q}` : p;
 }
 
 export function createBffClient(baseUrl: string = DEFAULT_BASE): BffClient {

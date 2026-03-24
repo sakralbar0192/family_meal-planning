@@ -885,6 +885,9 @@ components:
         to:
           type: string
           format: date
+        empty:
+          type: boolean
+          description: true если в списке нет строк (пустой период или только что сформирован)
         lines:
           type: array
           items:
