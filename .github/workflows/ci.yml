@@ -116,6 +116,7 @@ jobs:
     env:
       APP_ENV: test
       APP_SECRET: ci-secret
+      DEFAULT_URI: http://localhost
       INTERNAL_AUTH_TOKEN: dev-internal-token
       IAM_DATABASE_DSN: pgsql:host=127.0.0.1;port=5432;dbname=iam
       IAM_DATABASE_USER: iam
@@ -128,6 +129,16 @@ jobs:
         with:
           php-version: "8.3"
           coverage: none
+      - name: Prepare Symfony env file
+        run: |
+          if [ ! -f .env ]; then
+            cp .env.dev .env
+          fi
+          if ! grep -q '^DEFAULT_URI=' .env; then
+            echo 'DEFAULT_URI=http://localhost' >> .env
+          fi
+      - name: Clean Symfony cache
+        run: rm -rf var/cache/*
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Run test suite
@@ -156,6 +167,7 @@ jobs:
     env:
       APP_ENV: test
       APP_SECRET: ci-secret
+      DEFAULT_URI: http://localhost
       INTERNAL_AUTH_TOKEN: dev-internal-token
       CATALOG_DATABASE_DSN: pgsql:host=127.0.0.1;port=5432;dbname=catalog
       CATALOG_DATABASE_USER: catalog
@@ -166,6 +178,16 @@ jobs:
         with:
           php-version: "8.3"
           coverage: none
+      - name: Prepare Symfony env file
+        run: |
+          if [ ! -f .env ]; then
+            cp .env.dev .env
+          fi
+          if ! grep -q '^DEFAULT_URI=' .env; then
+            echo 'DEFAULT_URI=http://localhost' >> .env
+          fi
+      - name: Clean Symfony cache
+        run: rm -rf var/cache/*
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: php bin/phpunit
 
@@ -192,6 +214,7 @@ jobs:
     env:
       APP_ENV: test
       APP_SECRET: ci-secret
+      DEFAULT_URI: http://localhost
       INTERNAL_AUTH_TOKEN: dev-internal-token
       SHOPPING_DATABASE_DSN: pgsql:host=127.0.0.1;port=5432;dbname=shopping
       SHOPPING_DATABASE_USER: shopping
@@ -204,6 +227,16 @@ jobs:
         with:
           php-version: "8.3"
           coverage: none
+      - name: Prepare Symfony env file
+        run: |
+          if [ ! -f .env ]; then
+            cp .env.dev .env
+          fi
+          if ! grep -q '^DEFAULT_URI=' .env; then
+            echo 'DEFAULT_URI=http://localhost' >> .env
+          fi
+      - name: Clean Symfony cache
+        run: rm -rf var/cache/*
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: php bin/phpunit
 
