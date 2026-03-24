@@ -63,6 +63,8 @@ jobs:
           if [ ! -f .env ]; then
             cp .env.dev .env
           fi
+      - name: Clean Symfony cache
+        run: rm -rf var/cache/*
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Run test suite
