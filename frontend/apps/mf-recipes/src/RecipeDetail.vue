@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Recipe } from '@meal/bff-client';
+import { bffErrorMessage } from '@meal/bff-client';
 import { onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useBff } from './useBff';
@@ -33,7 +34,7 @@ async function load(): Promise<void> {
     recipe.value = await bff.json<Recipe>(`/recipes/${id}`);
   } catch (e) {
     recipe.value = null;
-    error.value = e instanceof Error ? e.message : 'Ошибка';
+    error.value = bffErrorMessage(e);
   } finally {
     loading.value = false;
   }

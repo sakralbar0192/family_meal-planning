@@ -175,6 +175,37 @@ final class BffFlowTest extends WebTestCase
         self::assertSame('77abf34d-8dc0-4442-9f54-23fb65fb7cf6', $body['listId']);
     }
 
+    public function testPatchSlotProxiesVersionConflictFromPlanning(): void
+    {
+        FakeUpstreamHttpClient::queueResponses([
+            [
+                'method' => 'GET',
+                'url' => 'http://localhost:8081/api/iam/v1/sessions/sess-123',
+                'status' => 200,
+                'body' => '{"userId":"24f74de4-a50f-4eb4-b336-44f10a158ad4"}',
+            ],
+            [
+                'method' => 'PATCH',
+                'url' => 'http://localhost:8084/api/planning/v1/slots/550e8400-e29b-41d4-a716-446655440001',
+                'status' => 400,
+                'body' => '{"code":"VERSION_CONFLICT","message":"expectedVersion does not match current version."}',
+            ],
+        ]);
+
+        $client = static::createClient();
+        $client->getCookieJar()->set(new Cookie('session_id', 'sess-123'));
+        $client->request(
+            'PATCH',
+            '/bff/v1/plan/slots/550e8400-e29b-41d4-a716-446655440001',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"recipeIds":["550e8400-e29b-41d4-a716-446655440099"],"expectedVersion":1}'
+        );
+
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        $body = \json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('VERSION_CONFLICT', $body['code']);
+    }
+
     public function testGetWeekPlanProxiesWithQueryString(): void
     {
         FakeUpstreamHttpClient::queueResponses([

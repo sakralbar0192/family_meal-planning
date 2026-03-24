@@ -1,3 +1,4 @@
+import { bffErrorFromResponse } from '@meal/bff-client';
 import { ref } from 'vue';
 import { getBff } from '../bff';
 
@@ -22,14 +23,8 @@ export function useSession() {
       body: JSON.stringify({ email, password }),
     });
     if (!r.ok) {
-      let msg = r.statusText;
-      try {
-        const j = (await r.json()) as { message?: string; code?: string };
-        msg = j.message ?? j.code ?? msg;
-      } catch {
-        /* ignore */
-      }
-      throw new Error(msg);
+      const err = await bffErrorFromResponse(r);
+      throw new Error(err.message);
     }
     isLoggedIn.value = true;
   }
@@ -41,14 +36,8 @@ export function useSession() {
       body: JSON.stringify({ email, password }),
     });
     if (!r.ok) {
-      let msg = r.statusText;
-      try {
-        const j = (await r.json()) as { message?: string; code?: string };
-        msg = j.message ?? j.code ?? msg;
-      } catch {
-        /* ignore */
-      }
-      throw new Error(msg);
+      const err = await bffErrorFromResponse(r);
+      throw new Error(err.message);
     }
   }
 

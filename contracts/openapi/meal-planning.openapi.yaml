@@ -104,7 +104,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/SlotAssignment'
         '400':
-          description: Конфликт версии или валидация
+          description: >
+            Валидация тела запроса (code `VALIDATION_ERROR`) или конфликт оптимистичной блокировки:
+            при несовпадении `expectedVersion` с текущим `version` слота — HTTP 400 и `code: VERSION_CONFLICT`
+            (см. реализацию `meal-planning`; BFF пробрасывает тот же ответ).
           content:
             application/json:
               schema:
@@ -265,7 +268,9 @@ components:
         expectedVersion:
           type: integer
           minimum: 1
-          description: Если задан и не совпадает — 409 (опционально для MVP)
+          description: >
+            Ожидаемая версия слота для optimistic locking.
+            Если задана и не совпадает с актуальной — ответ **400** с `code: VERSION_CONFLICT`.
     PlanAssignmentRow:
       type: object
       required: [date, slotCode, recipeId]

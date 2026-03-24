@@ -15,7 +15,33 @@ jobs:
       - name: Build and start Docker stack
         run: |
           docker compose -f infra/docker-compose.app.yml up -d --build --wait
-          sleep 10
+
+      - name: Wait for BFF + auth register path
+        run: |
+          set -e
+          for i in $(seq 1 60); do
+            h=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/bff/v1/health || true)
+            if [ "$h" != "200" ]; then
+              echo "bff health: $h (attempt $i)"
+              sleep 2
+              continue
+            fi
+            probe="e2e-probe-${i}-$(date +%s)@example.com"
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:8080/bff/v1/auth/register \
+              -H 'Content-Type: application/json' \
+              -d "{\"email\":\"${probe}\",\"password\":\"Probeprobe12\"}" || true)
+            if [ "$code" = "201" ]; then
+              echo "auth register ready (201)"
+              exit 0
+            fi
+            echo "register probe returned $code (attempt $i)"
+            sleep 2
+          done
+          echo "--- bff-web logs ---"
+          docker compose -f infra/docker-compose.app.yml logs --tail=200 bff-web
+          echo "--- identity-access logs ---"
+          docker compose -f infra/docker-compose.app.yml logs --tail=200 identity-access
+          exit 1
 
       - uses: actions/setup-node@v4
         with:
@@ -57,7 +83,17 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
           E2E_BFF_BASE_URL: http://127.0.0.1:8080/bff/v1
+          E2E_FULL_STACK: "1"
         run: npm test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
 
       - name: Stop stack
         if: always()

@@ -30,3 +30,16 @@ func TestExtractDraftH1Fallback(t *testing.T) {
 		t.Fatalf("expected empty steps/ingredients")
 	}
 }
+
+func TestExtractDraftOgTitleFallback(t *testing.T) {
+	htmlDoc := `<!doctype html><html><head>
+<meta property="og:title" content="  Pie from OG  " />
+</head><body></body></html>`
+	title, steps, ing := ExtractDraft(htmlDoc, "https://example.com/r")
+	if title != "Pie from OG" {
+		t.Fatalf("title: %q", title)
+	}
+	if len(steps) != 0 || len(ing) != 0 {
+		t.Fatalf("expected empty steps/ingredients")
+	}
+}

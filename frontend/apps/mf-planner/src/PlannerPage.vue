@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import {
+  bffErrorFromResponse,
+  bffErrorMessage,
   bffPath,
   type BuildListResponse,
   type RecipeListResponse,
@@ -125,7 +127,7 @@ async function loadWeek(): Promise<void> {
     }
   } catch (e) {
     week.value = null;
-    error.value = e instanceof Error ? e.message : 'Ошибка плана';
+    error.value = bffErrorMessage(e);
   } finally {
     loading.value = false;
   }
@@ -178,7 +180,14 @@ async function patchSlot(slot: SlotAssignment, recipeIds: string[]): Promise<voi
     body: JSON.stringify({ recipeIds, expectedVersion: slot.version }),
   });
   if (!res.ok) {
-    slotError.value = await res.text();
+    const err = await bffErrorFromResponse(res);
+    if (err.code === 'VERSION_CONFLICT') {
+      slotError.value =
+        'Данные плана устарели (другое окно или вкладка). Обновляем неделю — повторите действие.';
+      await loadWeek();
+      return;
+    }
+    slotError.value = err.message;
     return;
   }
   await loadWeek();
@@ -246,6 +255,16 @@ function presetTodaySunday(): void {
 async function buildShopping(): Promise<void> {
   buildBusy.value = true;
   buildError.value = '';
+  if (!shoppingFrom.value || !shoppingTo.value) {
+    buildError.value = 'Укажите период «с» и «по».';
+    buildBusy.value = false;
+    return;
+  }
+  if (shoppingFrom.value > shoppingTo.value) {
+    buildError.value = 'Дата «с» не может быть позже «по».';
+    buildBusy.value = false;
+    return;
+  }
   try {
     const res = await bff.json<BuildListResponse>('/shopping/build', {
       method: 'POST',
@@ -256,7 +275,7 @@ async function buildShopping(): Promise<void> {
       query: res.empty ? { empty: '1' } : {},
     });
   } catch (e) {
-    buildError.value = e instanceof Error ? e.message : 'Ошибка';
+    buildError.value = bffErrorMessage(e);
   } finally {
     buildBusy.value = false;
   }
@@ -402,6 +421,7 @@ function nextMonth(): void {
                   type="button"
                   class="link-remove"
                   title="Убрать"
+                  aria-label="Убрать рецепт из слота"
                   @click="removeRecipeFromSlot(slot, rid)"
                 >
                   ×

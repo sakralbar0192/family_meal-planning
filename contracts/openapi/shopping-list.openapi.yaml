@@ -297,7 +297,7 @@ components:
             format: uuid
     ShoppingListDetail:
       type: object
-      required: [listId, from, to, lines]
+      required: [listId, from, to, empty, lines]
       properties:
         listId:
           type: string
@@ -308,6 +308,11 @@ components:
         to:
           type: string
           format: date
+        empty:
+          type: boolean
+          description: >
+            `true`, если в списке нет строк снимка (`lines` пустой). Совпадает с полем `empty` в ответе BFF
+            `GET /bff/v1/shopping/lists/{listId}`.
         lines:
           type: array
           items:

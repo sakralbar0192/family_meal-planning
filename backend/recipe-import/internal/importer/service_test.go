@@ -22,6 +22,33 @@ func TestImportByURL_Allowlist(t *testing.T) {
 	}
 }
 
+func TestImportByURL_AllowlistHostCaseAndPort(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte("<html><head><title>T</title></head></html>"))
+	}))
+	t.Cleanup(ts.Close)
+
+	pu, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hostLower := strings.ToLower(strings.Split(pu.Host, ":")[0])
+
+	svc := &Service{
+		Client:       ts.Client(),
+		AllowedHosts: map[string]struct{}{hostLower: {}},
+		FetchTimeout: 5 * time.Second,
+	}
+	// Host из URL в верхнем регистре + нестандартный порт — сравниваем только hostname без порта
+	upperHost := strings.ToUpper(hostLower)
+	rawURL := strings.Replace(ts.URL, hostLower, upperHost, 1)
+	_, status, _, _ := svc.ImportByURL(context.Background(), rawURL+"/p")
+	if status != 200 {
+		t.Fatalf("expected 200 for case/port-normalized host, got %d", status)
+	}
+}
+
 func TestImportByURL_Success(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")

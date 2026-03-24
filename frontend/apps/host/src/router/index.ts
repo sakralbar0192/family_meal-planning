@@ -1,5 +1,7 @@
 import { defineAsyncComponent } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
+import type { RouteLocationNormalized } from 'vue-router';
+import { useSession } from '../composables/useSession';
 import HomeView from '../views/HomeView.vue';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
@@ -11,7 +13,17 @@ const RecipeForm = defineAsyncComponent(() => import('mf_recipes/RecipeForm'));
 const PlannerPage = defineAsyncComponent(() => import('mf_planner/PlannerPage'));
 const ShoppingPage = defineAsyncComponent(() => import('mf_shopping/ShoppingPage'));
 
-export default createRouter({
+function routeRequiresAuth(to: RouteLocationNormalized): boolean {
+  const p = to.path;
+  if (p === '/' || p === '/login' || p === '/register') {
+    return false;
+  }
+  return (
+    p.startsWith('/recipes') || p.startsWith('/planner') || p.startsWith('/shopping')
+  );
+}
+
+const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'home', component: HomeView },
@@ -26,3 +38,19 @@ export default createRouter({
     { path: '/shopping/:listId', name: 'shopping', component: ShoppingPage },
   ],
 });
+
+router.beforeEach(async (to) => {
+  if (!routeRequiresAuth(to)) {
+    return true;
+  }
+  const { isLoggedIn, refreshSession } = useSession();
+  if (isLoggedIn.value === null) {
+    await refreshSession();
+  }
+  if (!isLoggedIn.value) {
+    return { name: 'login', query: { ...to.query, redirect: to.fullPath } };
+  }
+  return true;
+});
+
+export default router;

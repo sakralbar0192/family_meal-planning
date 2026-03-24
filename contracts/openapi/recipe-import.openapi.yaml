@@ -2,7 +2,8 @@ openapi: 3.0.3
 info:
   title: recipe-import API
   description: >
-    Парсинг URL с whitelist сайтов; возвращает черновик рецепта без записи в каталог (ADR 0003).
+    Парсинг URL с whitelist сайтов (`IMPORT_ALLOWED_HOSTS` в окружении сервиса: список хостов через запятую,
+    без схемы; пустой список — все URL отклоняются); возвращает черновик рецепта без записи в каталог (ADR 0003).
     Таймауты и отмена — на стороне gateway/BFF.
   version: 1.0.0
 servers:
@@ -55,7 +56,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecipeDraft'
         '400':
-          description: URL не с whitelist или невалиден
+          description: >
+            URL не из allowlist, невалиден или не удалось разобрать хост.
+            Типичный `code`: `URL_NOT_ALLOWED` (хост не в `IMPORT_ALLOWED_HOSTS`).
           content:
             application/json:
               schema:
@@ -109,6 +112,9 @@ components:
       properties:
         code:
           type: string
+          description: >
+            Например `INVALID_URL`, `URL_NOT_ALLOWED` (хост вне `IMPORT_ALLOWED_HOSTS`),
+            `FETCH_FAILED` / `UPSTREAM_TIMEOUT`, `PARSE_FAILED` (см. реализацию `recipe-import`).
         message:
           type: string
         details:
@@ -121,6 +127,9 @@ components:
         url:
           type: string
           format: uri
+          description: >
+            Полный URL страницы рецепта. Хост должен входить в `IMPORT_ALLOWED_HOSTS` (сравнение по
+            регистронезависимому hostname после разбора URI).
     Nutrition:
       type: object
       properties:

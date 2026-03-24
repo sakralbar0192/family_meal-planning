@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useSession } from '../composables/useSession';
 
 const router = useRouter();
+const route = useRoute();
 const { login } = useSession();
 
 const email = ref('');
@@ -16,7 +17,12 @@ async function onSubmit(): Promise<void> {
   busy.value = true;
   try {
     await login(email.value.trim(), password.value);
-    await router.push({ name: 'home' });
+    const redir = route.query.redirect;
+    if (typeof redir === 'string' && redir.startsWith('/') && !redir.startsWith('//')) {
+      await router.push(redir);
+    } else {
+      await router.push({ name: 'home' });
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка входа';
   } finally {

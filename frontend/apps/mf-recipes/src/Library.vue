@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {
+  bffErrorFromResponse,
+  bffErrorMessage,
   bffPath,
-  type BffErrorBody,
   type DayPlan,
   type WeekPlanResponse,
 } from '@meal/bff-client';
@@ -46,7 +47,7 @@ async function loadList(): Promise<void> {
     items.value = res.items;
     total.value = res.total;
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Ошибка загрузки';
+    error.value = bffErrorMessage(e);
   } finally {
     loading.value = false;
   }
@@ -107,13 +108,13 @@ async function confirmAddToPlan(): Promise<void> {
       }),
     });
     if (!res.ok) {
-      const text = await res.text();
-      try {
-        const j = JSON.parse(text) as BffErrorBody;
-        planError.value = j.message || text;
-      } catch {
-        planError.value = text || res.statusText;
+      const err = await bffErrorFromResponse(res);
+      if (err.code === 'VERSION_CONFLICT') {
+        planError.value =
+          'План изменился. Закройте окно и откройте «В план» снова, либо обновите планировщик.';
+        return;
       }
+      planError.value = err.message;
       return;
     }
     closePlanModal();
@@ -122,7 +123,7 @@ async function confirmAddToPlan(): Promise<void> {
       query: { anchorDate: planDate.value, focusDate: planDate.value },
     });
   } catch (e) {
-    planError.value = e instanceof Error ? e.message : 'Ошибка';
+    planError.value = bffErrorMessage(e);
   } finally {
     planBusy.value = false;
   }
@@ -135,12 +136,12 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
   try {
     const res = await bff.fetch(`/recipes/${r.id}`, { method: 'DELETE' });
     if (!res.ok) {
-      error.value = await res.text();
+      error.value = (await bffErrorFromResponse(res)).message;
       return;
     }
     await loadList();
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось удалить';
+    error.value = bffErrorMessage(e);
   }
 }
 
@@ -188,9 +189,15 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
       </li>
     </ul>
 
-    <div v-if="planModalOpen" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div
+      v-if="planModalOpen"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="plan-modal-title"
+    >
       <div class="modal">
-        <h3>Добавить в план</h3>
+        <h3 id="plan-modal-title">Добавить в план</h3>
         <p v-if="planRecipe" class="muted">{{ planRecipe.title }}</p>
         <label>
           Дата

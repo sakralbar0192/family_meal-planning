@@ -54,7 +54,7 @@
 | Метод | Путь | Описание |
 |-------|------|----------|
 | GET | `/bff/v1/plan/week` | План на неделю (query `anchorDate` + опционально `focusDate`, `recipeSearch`) |
-| PATCH | `/bff/v1/plan/slots/{slotId}` | Обновление назначений (DnD); идемпотентность по договорённости |
+| PATCH | `/bff/v1/plan/slots/{slotId}` | Обновление назначений (DnD); при передаче `expectedVersion` — optimistic lock; при рассинхроне **400** и `code: VERSION_CONFLICT` в теле (прокси к `meal-planning`) |
 
 **Маппинг на `meal-planning`:** `GET /bff/v1/plan/week` → `GET /api/planning/v1/week-plans/current` (с теми же query).
 
@@ -63,7 +63,7 @@
 | Метод | Путь | Описание |
 |-------|------|----------|
 | POST | `/bff/v1/shopping/build` | Тело `{ "from": "date", "to": "date" }` → формирование списка |
-| GET | `/bff/v1/shopping/lists/{id}` | Получить список со строками |
+| GET | `/bff/v1/shopping/lists/{id}` | Получить список со строками и флагом `empty` (нет строк снимка) |
 | POST | `/bff/v1/shopping/lists/{id}/lines` | Добавить ручную позицию (UC-3) |
 | PATCH | `/bff/v1/shopping/lists/{id}/lines/{lineId}` | Отметка «куплено», правки |
 | DELETE | `/bff/v1/shopping/lists/{id}/lines/{lineId}` | Удалить строку |

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Ingredient, Recipe } from '@meal/bff-client';
+import { bffErrorMessage } from '@meal/bff-client';
 import { onMounted, reactive, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useBff } from './useBff';
@@ -19,17 +20,26 @@ const cookTimeMinutes = ref<number | ''>('');
 const mealCategory = ref('');
 const sourceUrl = ref('');
 
-const ingredients = reactive<Ingredient[]>([
-  { name: '', productCategory: 'other', quantity: null, unit: '' },
+type IngredientRow = Ingredient & { toTaste: boolean };
+
+const ingredients = reactive<IngredientRow[]>([
+  { name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false },
 ]);
 
 function addIngredient(): void {
-  ingredients.push({ name: '', productCategory: 'other', quantity: null, unit: '' });
+  ingredients.push({ name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false });
 }
 
 function removeIngredient(i: number): void {
   if (ingredients.length > 1) {
     ingredients.splice(i, 1);
+  }
+}
+
+function onToTasteChange(ing: IngredientRow): void {
+  if (ing.toTaste) {
+    ing.quantity = null;
+    ing.unit = '';
   }
 }
 
@@ -45,9 +55,10 @@ function payloadFromForm(): Record<string, unknown> {
     .filter((i) => i.name.trim() !== '')
     .map((i) => ({
       name: i.name.trim(),
-      productCategory: i.productCategory.trim() || 'other',
-      quantity: i.quantity == null || i.quantity === '' ? null : Number(i.quantity),
-      unit: i.unit?.trim() || undefined,
+      productCategory: (i.productCategory.trim() || 'other').toLowerCase(),
+      quantity:
+        i.toTaste || i.quantity == null || i.quantity === '' ? null : Number(i.quantity),
+      unit: i.toTaste ? undefined : i.unit?.trim() || undefined,
     }));
   const body: Record<string, unknown> = {
     title: title.value.trim(),
@@ -77,9 +88,18 @@ async function loadEdit(): Promise<void> {
     cookTimeMinutes.value = r.cookTimeMinutes ?? '';
     mealCategory.value = r.mealCategory ?? '';
     sourceUrl.value = r.sourceUrl ?? '';
-    ingredients.splice(0, ingredients.length, ...(r.ingredients.length ? r.ingredients : [{ name: '', productCategory: 'other', quantity: null, unit: '' }]));
+    ingredients.splice(
+      0,
+      ingredients.length,
+      ...(r.ingredients.length
+        ? r.ingredients.map((x) => ({
+            ...x,
+            toTaste: x.quantity == null && x.unit == null,
+          }))
+        : [{ name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false }]),
+    );
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Ошибка';
+    error.value = bffErrorMessage(e);
   } finally {
     loading.value = false;
   }
@@ -112,11 +132,14 @@ function applyImportDraft(): void {
       productCategory: x.productCategory ?? 'other',
       quantity: x.quantity ?? null,
       unit: x.unit ?? '',
+      toTaste: (x.quantity == null || x.quantity === undefined) && !x.unit,
     }));
     ingredients.splice(
       0,
       ingredients.length,
-      ...(ings.length ? ings : [{ name: '', productCategory: 'other', quantity: null, unit: '' }]),
+      ...(ings.length
+        ? ings
+        : [{ name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false }]),
     );
     sessionStorage.removeItem('meal_import_draft');
   } catch {
@@ -144,7 +167,13 @@ watch(
       cookTimeMinutes.value = '';
       mealCategory.value = '';
       sourceUrl.value = '';
-      ingredients.splice(0, ingredients.length, { name: '', productCategory: 'other', quantity: null, unit: '' });
+      ingredients.splice(0, ingredients.length, {
+        name: '',
+        productCategory: 'other',
+        quantity: null,
+        unit: '',
+        toTaste: false,
+      });
       loading.value = false;
       applyImportDraft();
     } else {
@@ -162,9 +191,37 @@ watch(
   },
 );
 
+function validateForm(): string | null {
+  if (!title.value.trim()) {
+    return 'Укажите название рецепта.';
+  }
+  const named = ingredients.filter((i) => i.name.trim() !== '');
+  if (named.length === 0) {
+    return 'Добавьте хотя бы один ингредиент с названием.';
+  }
+  for (const i of named) {
+    if (!i.productCategory.trim()) {
+      return `У ингредиента «${i.name.trim()}» укажите категорию продукта (для списка покупок).`;
+    }
+    if (!i.toTaste && i.quantity != null && i.quantity !== '' && Number(i.quantity) < 0) {
+      return `Количество для «${i.name.trim()}» не может быть отрицательным.`;
+    }
+  }
+  if (cookTimeMinutes.value !== '' && Number(cookTimeMinutes.value) < 1) {
+    return 'Время приготовления должно быть не меньше 1 минуты.';
+  }
+  return null;
+}
+
 async function save(): Promise<void> {
   saving.value = true;
   error.value = '';
+  const v = validateForm();
+  if (v) {
+    error.value = v;
+    saving.value = false;
+    return;
+  }
   const body = payloadFromForm();
   try {
     if (isCreate.value) {
@@ -182,7 +239,7 @@ async function save(): Promise<void> {
       await router.push(`/recipes/${id}`);
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не сохранилось';
+    error.value = bffErrorMessage(e);
   } finally {
     saving.value = false;
   }
@@ -223,8 +280,18 @@ async function save(): Promise<void> {
         <legend>Ингредиенты *</legend>
         <div v-for="(ing, i) in ingredients" :key="i" class="ing-row">
           <input v-model="ing.name" placeholder="Название" />
-          <input v-model.number="ing.quantity" type="number" step="any" placeholder="Кол-во" />
-          <input v-model="ing.unit" placeholder="Ед." />
+          <label class="inline">
+            <input v-model="ing.toTaste" type="checkbox" @change="onToTasteChange(ing)" />
+            по вкусу
+          </label>
+          <input
+            v-model.number="ing.quantity"
+            type="number"
+            step="any"
+            placeholder="Кол-во"
+            :disabled="ing.toTaste"
+          />
+          <input v-model="ing.unit" placeholder="Ед." :disabled="ing.toTaste" />
           <input v-model="ing.productCategory" placeholder="Категория продукта" />
           <button type="button" class="btn small secondary" @click="removeIngredient(i)">−</button>
         </div>
@@ -272,9 +339,16 @@ textarea {
   background: var(--color-bg);
   color: inherit;
 }
+.inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-caption);
+  white-space: nowrap;
+}
 .ing-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1.5fr auto;
+  grid-template-columns: 2fr auto 1fr 1fr 1.5fr auto;
   gap: var(--space-sm);
   margin-bottom: var(--space-sm);
   align-items: center;

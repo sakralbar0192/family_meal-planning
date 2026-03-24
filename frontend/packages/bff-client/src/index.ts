@@ -3,7 +3,10 @@
  * (см. contracts/bff-routes.md, contracts/openapi/bff.openapi.yaml).
  */
 
+import { bffErrorFromResponse } from './errors';
+
 export * from './bff-types';
+export * from './errors';
 
 export type BffClient = {
   fetch(path: string, init?: RequestInit): Promise<Response>;
@@ -75,8 +78,7 @@ export function createBffClient(baseUrl: string = DEFAULT_BASE): BffClient {
     async json<T>(path: string, init?: RequestInit): Promise<T> {
       const res = await bffFetch(path, init);
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`BFF ${res.status}: ${text || res.statusText}`);
+        throw await bffErrorFromResponse(res);
       }
       if (res.status === 204) {
         return undefined as T;

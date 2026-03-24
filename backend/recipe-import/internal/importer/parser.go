@@ -15,6 +15,9 @@ func ExtractDraft(htmlDoc string, sourceURL string) (title string, steps []strin
 	}
 	title = findTitle(doc)
 	if title == "" {
+		title = findOgTitle(doc)
+	}
+	if title == "" {
 		title = findFirstH1(doc)
 	}
 	if title == "" {
@@ -31,6 +34,29 @@ func findTitle(n *html.Node) string {
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if t := findTitle(c); t != "" {
+			return t
+		}
+	}
+	return ""
+}
+
+func findOgTitle(n *html.Node) string {
+	if n.Type == html.ElementNode && n.Data == "meta" {
+		var prop, content string
+		for _, a := range n.Attr {
+			switch a.Key {
+			case "property":
+				prop = a.Val
+			case "content":
+				content = a.Val
+			}
+		}
+		if strings.EqualFold(prop, "og:title") && strings.TrimSpace(content) != "" {
+			return strings.TrimSpace(content)
+		}
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if t := findOgTitle(c); t != "" {
 			return t
 		}
 	}

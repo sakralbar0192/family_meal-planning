@@ -101,8 +101,9 @@ export type ShoppingListDetail = {
   listId: string;
   from: string;
   to: string;
+  /** true, если нет строк снимка (см. OpenAPI shopping-list / bff). */
+  empty: boolean;
   lines: ShoppingLine[];
-  empty?: boolean;
 };
 
 export type BffErrorBody = {

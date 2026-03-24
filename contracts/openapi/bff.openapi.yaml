@@ -344,7 +344,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/SlotAssignment'
         '400':
-          $ref: '#/components/responses/Error'
+          description: >
+            Валидация тела или `code: VERSION_CONFLICT` при несовпадении `expectedVersion` с версией слота
+            (прокси к `meal-planning`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
         '401':
           $ref: '#/components/responses/Error'
         '404':
@@ -874,7 +880,7 @@ components:
             format: uuid
     ShoppingListDetail:
       type: object
-      required: [listId, from, to, lines]
+      required: [listId, from, to, empty, lines]
       properties:
         listId:
           type: string

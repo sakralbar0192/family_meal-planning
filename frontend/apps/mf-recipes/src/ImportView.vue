@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { RecipeDraft } from '@meal/bff-client';
+import { bffErrorMessage, isBffHttpError } from '@meal/bff-client';
 import { ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { useBff } from './useBff';
@@ -10,6 +11,26 @@ const router = useRouter();
 const url = ref('');
 const loading = ref(false);
 const error = ref('');
+
+function importErrorMessage(e: unknown): string {
+  if (!isBffHttpError(e)) {
+    return bffErrorMessage(e);
+  }
+  switch (e.code) {
+    case 'URL_NOT_ALLOWED':
+      return 'Этот сайт не в списке разрешённых (IMPORT_ALLOWED_HOSTS). Введите рецепт вручную или укажите URL с разрешённого хоста.';
+    case 'INVALID_URL':
+      return 'Некорректный URL.';
+    case 'UPSTREAM_TIMEOUT':
+      return 'Сервер долго ждал ответ сайта. Попробуйте позже.';
+    case 'FETCH_FAILED':
+      return 'Не удалось загрузить страницу. Проверьте URL и сеть.';
+    case 'PARSE_FAILED':
+      return 'Не удалось извлечь рецепт со страницы. Создайте рецепт вручную.';
+    default:
+      return e.message;
+  }
+}
 
 async function submit(): Promise<void> {
   loading.value = true;
@@ -22,7 +43,7 @@ async function submit(): Promise<void> {
     sessionStorage.setItem('meal_import_draft', JSON.stringify(draft));
     await router.push({ path: '/recipes/new', query: { fromImport: '1' } });
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Импорт не удался';
+    error.value = importErrorMessage(e);
   } finally {
     loading.value = false;
   }

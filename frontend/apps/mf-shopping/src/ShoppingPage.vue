@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ShoppingLine, ShoppingListDetail } from '@meal/bff-client';
+import { bffErrorFromResponse, bffErrorMessage, type ShoppingLine, type ShoppingListDetail } from '@meal/bff-client';
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useBff } from './useBff';
@@ -40,7 +40,7 @@ async function load(): Promise<void> {
     detail.value = await bff.json<ShoppingListDetail>(`/shopping/lists/${listId.value}`);
   } catch (e) {
     detail.value = null;
-    error.value = e instanceof Error ? e.message : 'Ошибка';
+    error.value = bffErrorMessage(e);
   } finally {
     loading.value = false;
   }
@@ -77,7 +77,7 @@ async function togglePurchased(line: ShoppingLine): Promise<void> {
     body: JSON.stringify({ purchased: !line.purchased }),
   });
   if (!res.ok) {
-    error.value = await res.text();
+    error.value = (await bffErrorFromResponse(res)).message;
     return;
   }
   await load();
@@ -91,7 +91,7 @@ async function removeLine(line: ShoppingLine): Promise<void> {
     method: 'DELETE',
   });
   if (!res.ok) {
-    error.value = await res.text();
+    error.value = (await bffErrorFromResponse(res)).message;
     return;
   }
   await load();
@@ -99,6 +99,7 @@ async function removeLine(line: ShoppingLine): Promise<void> {
 
 async function addManual(): Promise<void> {
   if (!manualName.value.trim()) {
+    error.value = 'Укажите название продукта.';
     return;
   }
   const body: Record<string, unknown> = { displayName: manualName.value.trim() };
@@ -116,7 +117,7 @@ async function addManual(): Promise<void> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    error.value = await res.text();
+    error.value = (await bffErrorFromResponse(res)).message;
     return;
   }
   manualName.value = '';
