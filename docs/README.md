@@ -9,6 +9,8 @@
 | Продукт, scope, сценарии | [business-doc.md](./business-doc.md) |
 | Ограниченные контексты, Event Storming, ubiquitous language | [domain-contexts-event-storming.md](./domain-contexts-event-storming.md) |
 | Архитектура, NFR, трассировка к ADR | [architecture-decision-context.md](./architecture-decision-context.md) |
+| Целевая solution architecture (сервисы, порты) | [solution-architecture.md](./solution-architecture.md) |
+| ADR (принятые решения) | [adr/README.md](./adr/README.md) |
 | UX-договорённости, этапы макета/прототипа | [design-plan.md](./design-plan.md) |
 | Figma: токены, компоненты, фреймы, прототип, синхронизация | [technical-spec-figma.md](./technical-spec-figma.md) |
 

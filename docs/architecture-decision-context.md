@@ -94,14 +94,14 @@
 
 | ID | Требование (ссылка) | Суть | Затронутые контексты | ADR / решение |
 |----|---------------------|------|------------------------|---------------|
-| FR-3.1 | [business-doc.md](./business-doc.md) §3.1 | Рецепты: CRUD, ингредиенты, категории продуктов | Recipe Catalog, Identity | TBD |
-| FR-3.1-import | [business-doc.md](./business-doc.md) §3.1 | Импорт по URL с двух сайтов | Recipe Import, Recipe Catalog | TBD |
-| FR-3.2 | [business-doc.md](./business-doc.md) §3.2 | Планировщик, слоты, DnD, «В план» | Meal Planning, Recipe Catalog | TBD |
-| FR-3.3 | [business-doc.md](./business-doc.md) §3.3 | Список покупок, агрегация, экспорт | Shopping List, Meal Planning | TBD |
-| NFR-perf | [business-doc.md](./business-doc.md) §4 | Импорт 3–5 с; отзывчивость DnD | Import, API, клиент | TBD |
-| NFR-auth | [business-doc.md](./business-doc.md) §4 | Серверное хранение, email/пароль | Identity | TBD |
-| NFR-parse | [business-doc.md](./business-doc.md) §4 | Стабильность парсинга | Recipe Import | TBD |
-| UC-1..3 | [business-doc.md](./business-doc.md) §6 | Сквозные сценарии | Import, Catalog, Planning, List | TBD |
+| FR-3.1 | [business-doc.md](./business-doc.md) §3.1 | Рецепты: CRUD, ингредиенты, категории продуктов | Recipe Catalog, Identity | [ADR 0001](./adr/0001-microservice-boundaries-bff-session-auth.md), [0003](./adr/0003-php-go-split-openapi.md); [solution-architecture.md](./solution-architecture.md) |
+| FR-3.1-import | [business-doc.md](./business-doc.md) §3.1 | Импорт по URL с двух сайтов | Recipe Import, Recipe Catalog | [ADR 0003](./adr/0003-php-go-split-openapi.md); черновик → сохранение в catalog |
+| FR-3.2 | [business-doc.md](./business-doc.md) §3.2 | Планировщик, слоты, DnD, «В план» | Meal Planning, Recipe Catalog | [ADR 0002](./adr/0002-plan-aggregate-shopping-snapshot.md) |
+| FR-3.3 | [business-doc.md](./business-doc.md) §3.3 | Список покупок, агрегация, экспорт | Shopping List, Meal Planning | [ADR 0002](./adr/0002-plan-aggregate-shopping-snapshot.md) |
+| NFR-perf | [business-doc.md](./business-doc.md) §4 | Импорт 3–5 с; отзывчивость DnD | Import, API, клиент | Gateway timeout; [solution-architecture.md](./solution-architecture.md); observability в [infra/docker-compose.observability.yml](../infra/docker-compose.observability.yml) |
+| NFR-auth | [business-doc.md](./business-doc.md) §4 | Серверное хранение, email/пароль | Identity | [ADR 0001](./adr/0001-microservice-boundaries-bff-session-auth.md) |
+| NFR-parse | [business-doc.md](./business-doc.md) §4 | Стабильность парсинга | Recipe Import | Метрики/логи; [infra/docker-compose.observability.yml](../infra/docker-compose.observability.yml) |
+| UC-1..3 | [business-doc.md](./business-doc.md) §6 | Сквозные сценарии | Import, Catalog, Planning, List | [bff-routes.md](../contracts/bff-routes.md); e2e: [.github/workflows/ci.yml](../.github/workflows/ci.yml) |
 
 ---
 
@@ -125,7 +125,9 @@
 | [domain-contexts-event-storming.md](./domain-contexts-event-storming.md) | Контексты, события, ubiquitous language, Figma DDD |
 | [design-plan.md](./design-plan.md) | UX-договорённости, влияющие на потоки и границы экранов |
 | [technical-spec-figma.md](./technical-spec-figma.md) | Токены, компоненты, экраны, прототип, ограничения Figma |
+| [solution-architecture.md](./solution-architecture.md) | Целевая схема сервисов, порты, трассировка к FR |
+| [adr/README.md](./adr/README.md) | Индекс Architecture Decision Records |
 
 ---
 
-*Версия контекста: 2026-03-22. При существенных изменениях бизнес- или доменного документа обновляйте этот файл и дату.*
+*Версия контекста: 2026-03-24. При существенных изменениях бизнес- или доменного документа обновляйте этот файл и дату.*

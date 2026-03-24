@@ -1,0 +1,20 @@
+{
+  "name": "family-meal-planning-frontend",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "postinstall": "npm run build --workspace=@meal/ui-tokens",
+    "build": "npm run build --workspace=@meal/ui-tokens && npm run build --workspace=@meal/mf-recipes --workspace=@meal/mf-planner --workspace=@meal/mf-shopping && npm run build --workspace=@meal/host",
+    "dev:recipes": "npm run dev --workspace=@meal/mf-recipes",
+    "dev:planner": "npm run dev --workspace=@meal/mf-planner",
+    "dev:shopping": "npm run dev --workspace=@meal/mf-shopping",
+    "dev:host": "npm run dev --workspace=@meal/host",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

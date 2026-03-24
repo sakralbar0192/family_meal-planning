@@ -1,0 +1,69 @@
+openapi: 3.0.3
+info:
+  title: SERVICE_NAME API
+  description: DESCRIPTION
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/SERVICE_SLUG/v1
+    description: Local development (replace port and slug per service)
+tags:
+  - name: Health
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness and dependency checks
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down]
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: session_id
+    TrustedUserHeader:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: Internal only — set by BFF after session validation
+
+# Remove or adjust security when publishing public vs internal specs:
+# security:
+#   - TrustedUserHeader: []

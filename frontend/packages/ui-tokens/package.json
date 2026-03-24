@@ -1,0 +1,14 @@
+{
+  "name": "@meal/ui-tokens",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Design tokens aligned with docs/technical-spec-figma.md (Light + Dark)",
+  "type": "module",
+  "main": "./dist/tokens.css",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "mkdir -p dist && cp src/tokens.css dist/tokens.css"
+  }
+}
