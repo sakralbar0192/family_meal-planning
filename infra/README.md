@@ -8,6 +8,12 @@
 docker compose -f infra/docker-compose.observability.yml up -d
 ```
 
+## Запуск app-стека (MVP backend)
+
+```bash
+docker compose -f infra/docker-compose.app.yml up -d --build
+```
+
 | Сервис | URL | Учётные данные |
 |--------|-----|----------------|
 | Grafana | http://localhost:3000 | `admin` / `admin` (сменить в проде) |

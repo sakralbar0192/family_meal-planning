@@ -7,6 +7,12 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.internal_auth_token: '%env(INTERNAL_AUTH_TOKEN)%'
+    app.db_dsn: '%env(IAM_DATABASE_DSN)%'
+    app.db_user: '%env(IAM_DATABASE_USER)%'
+    app.db_password: '%env(IAM_DATABASE_PASSWORD)%'
+    app.redis_dsn: '%env(IAM_REDIS_DSN)%'
+    app.session_ttl_seconds: '%env(int:IAM_SESSION_TTL_SECONDS)%'
 
 services:
     # default configuration for services in *this* file
@@ -18,6 +24,27 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+
+    Predis\Client:
+        arguments:
+            $parameters: '%app.redis_dsn%'
+
+    App\Iam\Database:
+        arguments:
+            $dsn: '%app.db_dsn%'
+            $user: '%app.db_user%'
+            $password: '%app.db_password%'
+
+    App\Iam\SessionStore:
+        arguments:
+            $sessionTtlSeconds: '%app.session_ttl_seconds%'
+
+    App\Iam\InternalAuthSubscriber:
+        arguments:
+            $internalAuthToken: '%app.internal_auth_token%'
+
+    App\Iam\UserStoreInterface: '@App\Iam\UserRepository'
+    App\Iam\SessionStoreInterface: '@App\Iam\SessionStore'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

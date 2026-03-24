@@ -1,0 +1,49 @@
+services:
+  postgres-iam:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: iam
+      POSTGRES_USER: iam
+      POSTGRES_PASSWORD: iam
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iam -d iam"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-iam-data:/var/lib/postgresql/data
+
+  redis-iam:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  identity-access:
+    build:
+      context: ../backend/identity-access
+    depends_on:
+      postgres-iam:
+        condition: service_healthy
+      redis-iam:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      APP_SECRET: dev-secret
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      IAM_DATABASE_DSN: pgsql:host=postgres-iam;port=5432;dbname=iam
+      IAM_DATABASE_USER: iam
+      IAM_DATABASE_PASSWORD: iam
+      IAM_REDIS_DSN: tcp://redis-iam:6379
+      IAM_SESSION_TTL_SECONDS: 604800
+    ports:
+      - "28081:8081"
+
+volumes:
+  postgres-iam-data:

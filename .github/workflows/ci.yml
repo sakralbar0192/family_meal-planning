@@ -60,6 +60,55 @@ jobs:
       - name: Run test suite
         run: php bin/phpunit
 
+  identity-access:
+    name: Identity Access (Symfony + Postgres + Redis)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/identity-access
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: iam
+          POSTGRES_USER: iam
+          POSTGRES_PASSWORD: iam
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U iam -d iam"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      APP_ENV: test
+      APP_SECRET: ci-secret
+      INTERNAL_AUTH_TOKEN: dev-internal-token
+      IAM_DATABASE_DSN: pgsql:host=127.0.0.1;port=5432;dbname=iam
+      IAM_DATABASE_USER: iam
+      IAM_DATABASE_PASSWORD: iam
+      IAM_REDIS_DSN: tcp://127.0.0.1:6379
+      IAM_SESSION_TTL_SECONDS: 604800
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run test suite
+        run: php bin/phpunit
+
   # When Go services land:
   # go-test:
   #   runs-on: ubuntu-latest
