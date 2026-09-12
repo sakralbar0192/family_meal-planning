@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { UiButton, UiInput } from '@meal/ui-kit';
+import { APP_ROUTES } from '../app/routes';
 import { useSession } from '../composables/useSession';
 
 const router = useRouter();
@@ -27,25 +29,25 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <section class="auth-card">
-    <p class="eyebrow">Auth</p>
-    <h2>Регистрация</h2>
+  <section class="auth-card" aria-label="Форма регистрации">
     <form class="form" @submit.prevent="onSubmit">
       <label class="field">
-        <span>Email</span>
-        <input
+        <UiInput
           v-model="email"
+          label="Email"
           type="email"
+          placeholder="user@example.com"
           autocomplete="username"
           required
           data-testid="register-email"
         />
       </label>
       <label class="field">
-        <span>Пароль (мин. 8 символов)</span>
-        <input
+        <UiInput
           v-model="password"
+          label="Пароль (мин. 8 символов)"
           type="password"
+          placeholder="********"
           autocomplete="new-password"
           required
           minlength="8"
@@ -53,13 +55,13 @@ async function onSubmit(): Promise<void> {
         />
       </label>
       <p v-if="error" class="err" data-testid="register-error">{{ error }}</p>
-      <button type="submit" class="btn" :disabled="busy" data-testid="register-submit">
+      <UiButton type="submit" :disabled="busy" data-testid="register-submit">
         {{ busy ? '…' : 'Создать аккаунт' }}
-      </button>
+      </UiButton>
     </form>
     <p class="hint">
       Уже есть аккаунт?
-      <RouterLink to="/login">Вход</RouterLink>
+      <RouterLink :to="APP_ROUTES.LOGIN">Вход</RouterLink>
     </p>
   </section>
 </template>
@@ -75,21 +77,9 @@ async function onSubmit(): Promise<void> {
   display: grid;
   gap: var(--space-sm);
 }
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
-}
 .form {
   display: grid;
   gap: var(--space-md);
-  margin-top: var(--space-xs);
 }
 .field {
   display: flex;
@@ -98,36 +88,10 @@ h2 {
   font-size: var(--font-size-caption);
   color: var(--color-text-secondary);
 }
-.field input {
-  min-height: var(--input-min-height);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-body);
-}
 .err {
   margin: 0;
   color: var(--color-error);
   font-size: var(--font-size-caption);
-}
-.btn {
-  min-height: var(--button-min-height);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn:hover {
-  background: var(--color-accent-hover);
-}
-.btn:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 .hint {
   margin: var(--space-sm) 0 0;

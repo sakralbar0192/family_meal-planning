@@ -1,8 +1,25 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
+import { resetShellHeader, shellHeaderState } from '@meal/shell-chrome';
+import { UiAppHeader } from '@meal/ui-kit';
+import { watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
+import ShellVnode from './components/ShellVnode.vue';
+import { APP_ROUTES } from './app/routes';
 import { useSession } from './composables/useSession';
+import { isDemoMode } from './demo/mode';
 
+const route = useRoute();
+const demoMode = isDemoMode();
 const { isLoggedIn, logout } = useSession();
+
+watch(
+  () => route.name,
+  (name) => {
+    if (name === 'login' || name === 'register' || name === 'profile') {
+      resetShellHeader();
+    }
+  },
+);
 
 async function onLogout(): Promise<void> {
   await logout();
@@ -11,30 +28,84 @@ async function onLogout(): Promise<void> {
 
 <template>
   <div class="shell">
-    <header class="topbar">
-      <div class="topbar-text">
-        <p class="eyebrow">Family meal planning</p>
-        <h1>Планировщик питания</h1>
-      </div>
-      <nav class="nav" aria-label="Основная навигация">
-        <template v-if="isLoggedIn">
-          <RouterLink class="nav-link" to="/recipes" data-testid="nav-recipes">Рецепты</RouterLink>
-          <RouterLink class="nav-link" to="/planner" data-testid="nav-planner">Планировщик</RouterLink>
-          <button
-            type="button"
-            class="nav-link nav-link-ghost"
-            data-testid="logout-button"
-            @click="onLogout"
-          >
-            Выйти
-          </button>
+    <UiAppHeader
+      v-if="route.name === 'login' && !demoMode"
+      class="shell-header"
+      layout="centeredTitle"
+      :title-level="1"
+      aria-label="Шапка входа"
+    >
+      <template #title>Вход в аккаунт</template>
+    </UiAppHeader>
+
+    <UiAppHeader
+      v-else-if="route.name === 'register' && !demoMode"
+      class="shell-header"
+      layout="centeredTitle"
+      :title-level="1"
+      aria-label="Шапка регистрации"
+    >
+      <template #title>Регистрация</template>
+    </UiAppHeader>
+
+    <UiAppHeader
+      v-else-if="route.name === 'profile'"
+      class="shell-header"
+      layout="centeredTitle"
+      :title-level="1"
+      aria-label="Шапка профиля"
+    >
+      <template #title>Профиль</template>
+    </UiAppHeader>
+
+    <UiAppHeader
+      v-else
+      class="shell-header"
+      :layout="shellHeaderState.layout"
+      :title-level="shellHeaderState.titleLevel"
+      :title-align="shellHeaderState.titleAlign"
+      :aria-label="shellHeaderState.ariaLabel || 'Приложение'"
+    >
+      <template v-if="shellHeaderState.eyebrow" #eyebrow>{{ shellHeaderState.eyebrow }}</template>
+      <template v-if="shellHeaderState.title" #title>{{ shellHeaderState.title }}</template>
+      <template v-if="shellHeaderState.leadingRender" #leading>
+        <ShellVnode :factory="shellHeaderState.leadingRender" />
+      </template>
+      <template v-if="shellHeaderState.sublineRender" #subline>
+        <ShellVnode :factory="shellHeaderState.sublineRender" />
+      </template>
+      <template v-if="shellHeaderState.actionsRender" #actions>
+        <ShellVnode :factory="shellHeaderState.actionsRender" />
+      </template>
+    </UiAppHeader>
+
+    <div v-if="shellHeaderState.showAppNav" class="shell-app-nav">
+      <nav class="shell-nav" aria-label="Основная навигация">
+        <template v-if="demoMode || isLoggedIn">
+          <RouterLink class="ui-app-header-link" to="/recipes" data-testid="nav-recipes">Рецепты</RouterLink>
+          <RouterLink class="ui-app-header-link" to="/planner" data-testid="nav-planner">Планировщик</RouterLink>
+          <template v-if="!demoMode">
+            <RouterLink class="ui-app-header-link ui-app-header-link--secondary" to="/profile" data-testid="nav-profile">
+              Профиль
+            </RouterLink>
+            <button
+              type="button"
+              class="ui-app-header-link ui-app-header-link--secondary"
+              data-testid="logout-button"
+              @click="onLogout"
+            >
+              Выйти
+            </button>
+          </template>
         </template>
         <template v-else>
-          <RouterLink class="nav-link nav-link-ghost" to="/login" data-testid="nav-login">Вход</RouterLink>
-          <RouterLink class="nav-link" to="/register" data-testid="nav-register">Регистрация</RouterLink>
+          <RouterLink class="ui-app-header-link ui-app-header-link--secondary" :to="APP_ROUTES.LOGIN" data-testid="nav-login">
+            Вход
+          </RouterLink>
+          <RouterLink class="ui-app-header-link" :to="APP_ROUTES.REGISTER" data-testid="nav-register">Регистрация</RouterLink>
         </template>
       </nav>
-    </header>
+    </div>
 
     <main class="content">
       <RouterView />
@@ -51,73 +122,25 @@ async function onLogout(): Promise<void> {
   padding: var(--space-md);
 }
 
-.topbar {
-  display: grid;
-  gap: var(--space-md);
+.shell-header {
+  margin: 0 auto var(--space-sm);
+  max-width: 960px;
+}
+
+/* Глобальная навигация вне карточки TopBar (Figma: в TopBar только контент экрана) */
+.shell-app-nav {
   margin: 0 auto var(--space-lg);
   max-width: 960px;
-  padding: var(--space-lg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-elevated);
+  display: flex;
+  justify-content: flex-end;
 }
 
-.topbar-text {
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-h1 {
-  margin: 0;
-  font-size: var(--font-size-heading);
-}
-
-.nav {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-sm);
-}
-
-.nav-link {
-  display: inline-flex;
+.shell-nav {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  min-height: var(--touch-target);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  font-weight: 600;
-  font-size: var(--font-size-body);
-  text-decoration: none;
-}
-
-.nav-link:hover {
-  background: var(--color-accent-hover);
-}
-
-.nav-link-ghost {
-  background: transparent;
-  color: var(--color-text-primary);
-  border-color: var(--color-border);
-}
-
-.nav-link-ghost:hover {
-  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
-}
-
-.nav-link.router-link-active {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  justify-content: flex-end;
+  gap: var(--space-sm);
 }
 
 .content {
@@ -125,28 +148,17 @@ h1 {
   margin: 0 auto;
 }
 
-button.nav-link {
-  width: 100%;
-  font: inherit;
-  cursor: pointer;
-}
-
 @media (min-width: 768px) {
   .shell {
     padding: var(--space-lg);
   }
 
-  .topbar {
+  .shell-header {
+    margin-bottom: var(--space-sm);
+  }
+
+  .shell-app-nav {
     margin-bottom: var(--space-xl);
-  }
-
-  .nav {
-    grid-template-columns: repeat(3, max-content);
-    justify-content: start;
-  }
-
-  button.nav-link {
-    width: auto;
   }
 }
 
@@ -155,7 +167,8 @@ button.nav-link {
     padding: var(--space-xl);
   }
 
-  .topbar,
+  .shell-header,
+  .shell-app-nav,
   .content {
     max-width: 1120px;
   }

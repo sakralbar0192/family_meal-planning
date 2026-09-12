@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { UiButton, UiInput } from '@meal/ui-kit';
+import { APP_ROUTES } from '../app/routes';
 import { useSession } from '../composables/useSession';
 
 const router = useRouter();
@@ -33,9 +34,7 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <section class="auth-card">
-    <p class="eyebrow">Auth</p>
-    <h2>Вход</h2>
+  <section class="auth-card" aria-label="Форма входа">
     <form class="form" @submit.prevent="onSubmit">
       <label class="field">
         <UiInput
@@ -62,7 +61,7 @@ async function onSubmit(): Promise<void> {
     </form>
     <p class="hint">
       Нет аккаунта?
-      <RouterLink to="/register">Регистрация</RouterLink>
+      <RouterLink :to="APP_ROUTES.REGISTER">Регистрация</RouterLink>
     </p>
   </section>
 </template>
@@ -78,21 +77,9 @@ async function onSubmit(): Promise<void> {
   display: grid;
   gap: var(--space-sm);
 }
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
-}
 .form {
   display: grid;
   gap: var(--space-md);
-  margin-top: var(--space-xs);
 }
 .field {
   display: flex;

@@ -1,14 +1,40 @@
 <script setup lang="ts">
-import { createBffClient, resolveBffBaseUrl } from '@meal/bff-client';
-import { onMounted, ref } from 'vue';
-import { RouterLink } from 'vue-router';
+import { setShellHeader } from '@meal/shell-chrome';
+import { h, onMounted, ref, watch } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
 import { useSession } from '../composables/useSession';
+import { getBff } from '../bff';
+import { isDemoMode } from '../demo/mode';
 
 const { isLoggedIn, refreshSession } = useSession();
+const router = useRouter();
 
 const bffStatus = ref('BFF: …');
+
+function applyHomeShell(): void {
+  setShellHeader({
+    ariaLabel: 'Главная страница',
+    title: 'Добро пожаловать',
+    showAppNav: true,
+    leadingRender: null,
+    actionsRender: null,
+    sublineRender: () =>
+      h('div', { class: 'shell-host-welcome' }, [
+        h(
+          'p',
+          { class: 'shell-host-welcome__lead' },
+          'Планируйте питание на неделю, собирайте рецепты и формируйте список покупок.',
+        ),
+        h('p', { class: 'shell-host-welcome__bff' }, bffStatus.value),
+      ]),
+  });
+}
+
+watch(bffStatus, applyHomeShell);
+
 onMounted(async () => {
-  const bff = createBffClient(resolveBffBaseUrl(import.meta.env.VITE_BFF_BASE_URL));
+  applyHomeShell();
+  const bff = getBff();
   try {
     const health = await bff.json<{ status: string }>('/health');
     bffStatus.value = health?.status === 'ok' ? 'BFF: ok' : 'BFF: неожиданный ответ';
@@ -16,19 +42,16 @@ onMounted(async () => {
     bffStatus.value = 'BFF: нет связи';
   }
   await refreshSession();
+  applyHomeShell();
+  if (isDemoMode()) {
+    await router.replace('/recipes');
+    return;
+  }
 });
 </script>
 
 <template>
   <section class="home">
-    <header class="hero">
-      <h2>Добро пожаловать</h2>
-      <p class="muted">
-        Планируйте питание на неделю, собирайте рецепты и формируйте список покупок.
-      </p>
-      <p class="bff">{{ bffStatus }}</p>
-    </header>
-
     <article
       v-if="isLoggedIn === true"
       class="session-card session-card-ok"
@@ -61,29 +84,9 @@ onMounted(async () => {
   width: 100%;
 }
 
-.hero {
-  display: grid;
-  gap: var(--space-sm);
-  padding: var(--space-lg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-elevated);
-}
-
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
-}
-
 h3 {
   margin: 0;
   font-size: var(--font-size-body);
-}
-
-.bff {
-  margin: 0;
-  font-size: var(--font-size-caption);
-  color: var(--color-text-muted);
 }
 
 .session-card {
@@ -146,14 +149,6 @@ h3 {
 @media (min-width: 768px) {
   .tiles {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1200px) {
-  .hero {
-    grid-template-columns: 1fr auto;
-    align-items: end;
-    column-gap: var(--space-xl);
   }
 }
 </style>

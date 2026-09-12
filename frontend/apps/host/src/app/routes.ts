@@ -2,6 +2,7 @@ export const APP_ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  PROFILE: '/profile',
   RECIPES: '/recipes',
   RECIPES_IMPORT: '/recipes/import',
   RECIPES_NEW: '/recipes/new',

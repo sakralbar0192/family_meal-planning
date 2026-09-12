@@ -1,12 +1,17 @@
 import { bffErrorFromResponse } from '@meal/bff-client';
 import { ref } from 'vue';
 import { getBff } from '../bff';
+import { isDemoMode } from '../demo/mode';
 
 /** null = ещё не проверяли; true/false после refresh или login/logout */
-const isLoggedIn = ref<boolean | null>(null);
+const isLoggedIn = ref<boolean | null>(isDemoMode() ? true : null);
 
 export function useSession() {
   async function refreshSession(): Promise<void> {
+    if (isDemoMode()) {
+      isLoggedIn.value = true;
+      return;
+    }
     const bff = getBff();
     try {
       const r = await bff.fetch('/recipes?limit=1');
@@ -42,6 +47,9 @@ export function useSession() {
   }
 
   async function logout(): Promise<void> {
+    if (isDemoMode()) {
+      return;
+    }
     const bff = getBff();
     try {
       await bff.fetch('/auth/logout', { method: 'POST' });

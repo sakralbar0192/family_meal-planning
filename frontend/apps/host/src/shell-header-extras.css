@@ -1,0 +1,47 @@
+/* Subline / actions content rendered via h() into host UiAppHeader (see @meal/shell-chrome) */
+.shell-header .shell-host-welcome {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.shell-header .shell-host-welcome__lead {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+}
+
+.shell-header .shell-host-welcome__bff {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+.shell-header .shopping-period-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.shell-header .shopping-period-line > span:first-of-type {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  font-weight: 400;
+}
+
+/* SCR / Планировщик: дата фокуса + primary «Список покупок» (technical-spec-figma.md) */
+.shell-header .planner-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 1200px) {
+  .shell-header .shell-host-welcome {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    column-gap: var(--space-xl);
+  }
+}
