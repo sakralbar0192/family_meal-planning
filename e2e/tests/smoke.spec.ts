@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { isBffHealthy } from '../helpers/bff';
 
-/**
- * Placeholder until the app is served in CI (docker compose + BFF + frontend).
- * Keeps Playwright wired; extend with UC 1–3 from docs/business-doc.md.
- */
 test.describe('smoke', () => {
-  test('project placeholder passes', async () => {
-    expect(1 + 1).toBe(2);
+  test('login page renders when frontend is up', async ({ page, request }) => {
+    await page.goto('/login');
+    await expect(page.getByRole('heading', { name: /вход/i })).toBeVisible({ timeout: 15_000 });
+
+    const healthy = await isBffHealthy(request);
+    if (healthy) {
+      await expect(page.getByRole('button', { name: /войти/i })).toBeEnabled();
+    }
   });
 });

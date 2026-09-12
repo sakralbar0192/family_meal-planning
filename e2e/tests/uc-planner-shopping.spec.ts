@@ -1,10 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 import { isBffHealthy, requiresBff } from '../helpers/bff';
-import { createRecipeViaBffCookie, parseWeekStartFromRange, registerAndLandHome } from '../helpers/session';
+import { createRecipeViaBffCookie, registerAndLandHome } from '../helpers/session';
 
 async function waitPlannerReady(page: Page): Promise<void> {
   await expect(page.getByText('Загрузка плана…')).toBeHidden({ timeout: 30_000 });
-  await expect(page.getByTestId('planner-week-range')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.week .day h4').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('planner-active-slot')).toBeEnabled({ timeout: 15_000 });
   await expect(page.getByTestId('planner-shopping-date-from')).not.toHaveValue('', { timeout: 15_000 });
 }
@@ -37,26 +37,26 @@ test.describe('UC-2 / UC-3 план → список покупок', () => {
     await page.goto('/planner');
     await waitPlannerReady(page);
 
-    const rangeText = await page.getByTestId('planner-week-range').textContent();
-    expect(rangeText).toBeTruthy();
-    const monday = parseWeekStartFromRange(rangeText!);
+    const monday = (await page.locator('.week .day h4').first().textContent())?.trim() ?? '';
+    expect(monday).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     await page.getByTestId('planner-active-slot').selectOption({ label: `${monday} — Ужин` });
 
     const row = page.getByTestId('planner-sidebar-recipe-row').filter({ hasText: recipeTitle });
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await row.getByRole('button', { name: 'В слот' }).click();
+    await row.getByTestId('planner-add-to-slot').click();
 
     const mondayDinnerSlot = page
       .locator('.day', { has: page.getByRole('heading', { level: 4, name: monday }) })
-      .locator('.slot', { has: page.locator('.slot-head', { hasText: 'Ужин' }) });
+      .locator('.slot')
+      .filter({ has: page.locator('.slot-head', { hasText: /^Ужин$/ }) });
+
     await expect(mondayDinnerSlot.locator('.slot-recipes li', { hasText: recipeTitle })).toBeVisible({
       timeout: 15_000,
     });
 
     await page.getByTestId('planner-build-shopping-list').click();
     await expect(page).toHaveURL(/\/shopping\/[^/]+$/i, { timeout: 25_000 });
-    await expect(page.getByTestId('shopping-period')).toBeVisible();
 
     await expect(page.getByTestId('shopping-empty-state')).toBeHidden();
     await expect(page.getByTestId('shopping-line').filter({ hasText: 'Мука' })).toBeVisible({

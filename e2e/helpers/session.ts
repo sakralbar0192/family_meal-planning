@@ -46,8 +46,3 @@ export async function createRecipeViaBffCookie(page: Page, title: string): Promi
   );
 }
 
-/** Первая дата недели (понедельник) из «YYYY-MM-DD — YYYY-MM-DD». */
-export function parseWeekStartFromRange(text: string): string {
-  const part = text.split('—')[0]?.trim() ?? '';
-  return part;
-}
