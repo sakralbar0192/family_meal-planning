@@ -34,7 +34,9 @@ func (s *Service) ImportByURL(ctx context.Context, rawURL string) (draft map[str
 	if err != nil {
 		return nil, 422, "FETCH_FAILED", err.Error()
 	}
-	req.Header.Set("User-Agent", "family-meal-planning-recipe-import/1.0")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; FamilyMealPlanning/1.0; +https://localhost) AppleWebKit/537.36 Chrome/124.0.0.0")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.8")
 
 	resp, err := s.Client.Do(req)
 	if err != nil {
@@ -54,20 +56,10 @@ func (s *Service) ImportByURL(ctx context.Context, rawURL string) (draft map[str
 		return nil, 422, "PARSE_FAILED", "Could not read response body."
 	}
 
-	title, steps, ingredients := ExtractDraft(body, rawURL)
-	if title == "" {
+	parsed := ExtractDraft(body, rawURL)
+	if parsed.Title == "" {
 		return nil, 422, "PARSE_FAILED", "Could not extract a recipe title from the page."
 	}
 
-	draft = map[string]any{
-		"title":        title,
-		"steps":        steps,
-		"ingredients":  ingredients,
-		"sourceUrl":    rawURL,
-		"cookTimeMinutes": nil,
-		"mealCategory":    nil,
-		"nutrition":       nil,
-		"imageUrl":        nil,
-	}
-	return draft, 200, "", ""
+	return parsed.toMap(rawURL), 200, "", ""
 }

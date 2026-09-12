@@ -2,30 +2,52 @@ package importer
 
 import (
 	"io"
+	"net/url"
 	"strings"
 
 	"golang.org/x/net/html"
 )
 
-// ExtractDraft parses minimal fields from HTML (title + placeholder ingredients for MVP).
-func ExtractDraft(htmlDoc string, sourceURL string) (title string, steps []string, ingredients []map[string]any) {
+// ExtractDraft parses recipe fields from HTML based on host-specific extractors.
+func ExtractDraft(htmlDoc string, sourceURL string) Draft {
 	doc, err := html.Parse(strings.NewReader(htmlDoc))
 	if err != nil {
-		return "", nil, nil
+		return Draft{}
 	}
-	title = findTitle(doc)
-	if title == "" {
-		title = findOgTitle(doc)
+
+	host := hostFromURL(sourceURL)
+	var d *Draft
+
+	switch {
+	case isEdaFixture(host, sourceURL):
+		d = extractEdaRuDraft(doc, htmlDoc)
+	case isPovarenokFixture(host, sourceURL):
+		d = extractPovarenokDraft(doc, htmlDoc)
+	default:
+		d = extractJSONLDDraft(htmlDoc)
+		if d == nil {
+			d = &Draft{}
+		}
 	}
-	if title == "" {
-		title = findFirstH1(doc)
+
+	if d.Title == "" {
+		d.Title = findTitle(doc)
 	}
-	if title == "" {
-		return "", nil, nil
+	if d.Title == "" {
+		d.Title = findOgTitle(doc)
 	}
-	steps = []string{}
-	ingredients = []map[string]any{}
-	return title, steps, ingredients
+	if d.Title == "" {
+		d.Title = findFirstH1(doc)
+	}
+
+	if d.Steps == nil {
+		d.Steps = []string{}
+	}
+	if d.Ingredients == nil {
+		d.Ingredients = []map[string]any{}
+	}
+
+	return *d
 }
 
 func findTitle(n *html.Node) string {
@@ -84,6 +106,14 @@ func textContent(n *html.Node) string {
 		b.WriteString(textContent(c))
 	}
 	return b.String()
+}
+
+func hostFromURL(sourceURL string) string {
+	u, err := url.Parse(sourceURL)
+	if err != nil {
+		return ""
+	}
+	return strings.ToLower(strings.Split(u.Host, ":")[0])
 }
 
 // ReadAllString reads full body (caller limits size).

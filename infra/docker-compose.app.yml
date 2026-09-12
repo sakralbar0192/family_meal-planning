@@ -124,13 +124,21 @@ services:
   recipe-import:
     build:
       context: ../backend/recipe-import
+    depends_on:
+      - import-fixtures
     environment:
       INTERNAL_AUTH_TOKEN: dev-internal-token
       LISTEN_ADDR: ":8083"
-      # Список хостов для POST /import/url (CSV). Для MVP согласовать с business-doc; example.com — для локальных фикстур.
-      IMPORT_ALLOWED_HOSTS: "127.0.0.1,localhost,example.com,www.example.com"
+      IMPORT_ALLOWED_HOSTS: "127.0.0.1,localhost,example.com,www.example.com,eda.ru,www.eda.ru,eda.rambler.ru,www.eda.rambler.ru,povarenok.ru,www.povarenok.ru,import-fixtures"
     ports:
       - "8083:8083"
+
+  import-fixtures:
+    image: nginx:alpine
+    volumes:
+      - ../backend/recipe-import/testdata/http:/usr/share/nginx/html:ro
+    ports:
+      - "8090:80"
 
   meal-planning:
     build:
