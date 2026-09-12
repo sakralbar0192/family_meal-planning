@@ -6,7 +6,8 @@ import {
   type DayPlan,
   type WeekPlanResponse,
 } from '@meal/bff-client';
-import { onMounted, ref } from 'vue';
+import { setShellHeader } from '@meal/shell-chrome';
+import { h, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { MEAL_SLOT_CODES, MEAL_SLOT_LABELS } from './mealSlots';
 import { useBff } from './useBff';
@@ -26,11 +27,15 @@ const mealCategory = ref('');
 const maxCookTimeMinutes = ref<number | ''>('');
 
 const planModalOpen = ref(false);
+const planStep = ref<1 | 2>(1);
 const planRecipe = ref<RecipeSummary | null>(null);
 const planDate = ref('');
 const planSlotCode = ref<string>(MEAL_SLOT_CODES[0]);
 const planBusy = ref(false);
 const planError = ref('');
+
+const toastOpen = ref(false);
+const toastContext = ref<{ recipeTitle: string; date: string; slotLabel: string } | null>(null);
 
 async function loadList(): Promise<void> {
   loading.value = true;
@@ -54,19 +59,48 @@ async function loadList(): Promise<void> {
   }
 }
 
-onMounted(loadList);
+onMounted(() => {
+  setShellHeader({
+    ariaLabel: 'Шапка библиотеки',
+    title: 'Рецепты',
+    showAppNav: true,
+    eyebrow: null,
+    leadingRender: null,
+    sublineRender: null,
+    actionsRender: () =>
+      h(RouterLink, { to: '/recipes/import', class: 'ui-app-header-link--accent' }, () => 'Импорт по URL'),
+  });
+  void loadList();
+});
 
 function openPlanModal(r: RecipeSummary): void {
   planRecipe.value = r;
   planDate.value = todayISODate();
   planSlotCode.value = MEAL_SLOT_CODES[0];
   planError.value = '';
+  planStep.value = 1;
   planModalOpen.value = true;
 }
 
 function closePlanModal(): void {
   planModalOpen.value = false;
   planRecipe.value = null;
+  planStep.value = 1;
+  planError.value = '';
+}
+
+function goToPlanStep2(): void {
+  if (!planDate.value) {
+    planError.value = 'Укажите дату.';
+    return;
+  }
+  planError.value = '';
+  planStep.value = 2;
+}
+
+function backToPlanStep1(): void {
+  planStep.value = 1;
+  planError.value = '';
 }
 
 function todayISODate(): string {
@@ -91,6 +125,9 @@ async function confirmAddToPlan(): Promise<void> {
   }
   planBusy.value = true;
   planError.value = '';
+  const recipeTitle = planRecipe.value.title;
+  const dateIso = planDate.value;
+  const slotLabel = MEAL_SLOT_LABELS[planSlotCode.value];
   try {
     const week = await bff.json<WeekPlanResponse>(
       bffPath('/plan/week', { anchorDate: planDate.value }),
@@ -119,15 +156,30 @@ async function confirmAddToPlan(): Promise<void> {
       return;
     }
     closePlanModal();
-    await router.push({
-      path: '/planner',
-      query: { anchorDate: planDate.value, focusDate: planDate.value },
-    });
+    toastContext.value = { recipeTitle, date: dateIso, slotLabel };
+    toastOpen.value = true;
   } catch (e) {
     planError.value = bffErrorMessage(e);
   } finally {
     planBusy.value = false;
   }
+}
+
+function closeToast(): void {
+  toastOpen.value = false;
+  toastContext.value = null;
+}
+
+function openPlannerFromToast(): void {
+  if (!toastContext.value) {
+    return;
+  }
+  const { date } = toastContext.value;
+  closeToast();
+  void router.push({
+    path: '/planner',
+    query: { anchorDate: date, focusDate: date },
+  });
 }
 
 async function deleteRecipe(r: RecipeSummary): Promise<void> {
@@ -150,17 +202,10 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
 
 <template>
   <section class="mf-root">
-    <header class="head">
-      <div class="title-wrap">
-        <p class="eyebrow">Recipes</p>
-        <h2>Библиотека рецептов</h2>
-      </div>
-      <div class="actions">
-        <RouterLink class="btn secondary" to="/recipes/import">Импорт по URL</RouterLink>
-        <RouterLink class="btn" to="/recipes/new">Создать рецепт</RouterLink>
-        <RouterLink class="btn secondary" to="/planner?pickDay=1">Планировщик</RouterLink>
-      </div>
-    </header>
+    <div class="library-quick">
+      <RouterLink class="quick-link" to="/recipes/new">Создать рецепт</RouterLink>
+      <RouterLink class="quick-link" to="/planner?pickDay=1">Планировщик</RouterLink>
+    </div>
 
     <form class="filters" @submit.prevent="loadList">
       <input v-model="q" type="search" placeholder="Поиск по названию" aria-label="Поиск" />
@@ -181,41 +226,91 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
     </div>
 
     <ul v-if="!loading" class="cards">
-      <li v-for="r in items" :key="r.id" class="card">
-        <RouterLink class="card-main" :to="`/recipes/${r.id}`">
-          <UiRecipeCard
-            :title="r.title"
-            :meta="r.cookTimeMinutes != null ? `${r.cookTimeMinutes} мин` : undefined"
-            :badge="r.mealCategory || undefined"
-          />
-        </RouterLink>
-        <div class="card-actions">
-          <UiButton size="sm" @click.stop="openPlanModal(r)">В план</UiButton>
-          <RouterLink class="btn small secondary" :to="`/recipes/${r.id}/edit`">Изменить</RouterLink>
-          <UiButton size="sm" variant="danger" @click.stop="deleteRecipe(r)">Удалить</UiButton>
-        </div>
+      <li v-for="r in items" :key="r.id" class="card-item">
+        <UiRecipeCard>
+          <template #top>
+            <RouterLink class="card-link" :to="`/recipes/${r.id}`">
+              <h4 class="card-title">{{ r.title }}</h4>
+              <p v-if="r.cookTimeMinutes != null" class="card-meta">{{ r.cookTimeMinutes }} мин</p>
+              <span v-if="r.mealCategory" class="card-badge">{{ r.mealCategory }}</span>
+            </RouterLink>
+          </template>
+          <template #actions>
+            <UiButton size="sm" @click="openPlanModal(r)">В план</UiButton>
+            <RouterLink class="btn small secondary" :to="`/recipes/${r.id}/edit`">Изменить</RouterLink>
+            <UiButton size="sm" variant="danger" @click="deleteRecipe(r)">Удалить</UiButton>
+          </template>
+        </UiRecipeCard>
       </li>
     </ul>
 
-    <UiModalShell v-if="planModalOpen" :open="planModalOpen" title="Добавить в план" @close="closePlanModal">
-        <p v-if="planRecipe" class="muted">{{ planRecipe.title }}</p>
-        <label>
-          Дата
-          <input v-model="planDate" type="date" />
-        </label>
-        <label>
-          Приём пищи
-          <select v-model="planSlotCode">
-            <option v-for="c in MEAL_SLOT_CODES" :key="c" :value="c">
-              {{ MEAL_SLOT_LABELS[c] }}
-            </option>
-          </select>
-        </label>
+    <UiModalShell
+      v-if="planModalOpen"
+      :open="planModalOpen"
+      :title="
+        planStep === 1 ? 'Добавить в план (шаг 1 из 2)' : 'Добавить в план (шаг 2 из 2)'
+      "
+      @close="closePlanModal"
+    >
+      <div class="plan-modal-body">
+        <p v-if="planRecipe" class="recipe-line">{{ planRecipe.title }}</p>
+
+        <template v-if="planStep === 1">
+          <div class="plan-modal-panel">
+            <p class="muted plan-hint">Выберите день для блюда в плане.</p>
+            <label>
+              Дата
+              <input v-model="planDate" type="date" />
+            </label>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="plan-modal-panel">
+            <p class="muted plan-hint">Выберите один из шести фиксированных приёмов пищи.</p>
+            <label>
+              Приём пищи
+              <select v-model="planSlotCode">
+                <option v-for="c in MEAL_SLOT_CODES" :key="c" :value="c">
+                  {{ MEAL_SLOT_LABELS[c] }}
+                </option>
+              </select>
+            </label>
+          </div>
+        </template>
+
         <p v-if="planError" class="err">{{ planError }}</p>
-        <template #actions>
+      </div>
+      <template #actions>
+        <template v-if="planStep === 1">
           <UiButton variant="secondary" :disabled="planBusy" @click="closePlanModal">Отмена</UiButton>
+          <UiButton :disabled="planBusy" @click="goToPlanStep2">Далее</UiButton>
+        </template>
+        <template v-else>
+          <UiButton variant="secondary" :disabled="planBusy" @click="backToPlanStep1">Назад</UiButton>
           <UiButton :disabled="planBusy" @click="confirmAddToPlan">Добавить</UiButton>
         </template>
+      </template>
+    </UiModalShell>
+
+    <UiModalShell
+      v-if="toastOpen"
+      :open="toastOpen"
+      title="Рецепт добавлен"
+      @close="closeToast"
+    >
+      <div class="toast-body">
+        <p v-if="toastContext" class="muted">
+          {{ toastContext.recipeTitle }} · {{ toastContext.date }} · {{ toastContext.slotLabel }}
+        </p>
+        <p class="muted toast-sub">Блюдо добавлено в план.</p>
+      </div>
+      <template #actions>
+        <UiButton variant="secondary" data-testid="plan-toast-planner" @click="openPlannerFromToast">
+          В планировщик
+        </UiButton>
+        <UiButton data-testid="plan-toast-ok" @click="closeToast">OK</UiButton>
+      </template>
     </UiModalShell>
   </section>
 </template>
@@ -230,34 +325,25 @@ async function deleteRecipe(r: RecipeSummary): Promise<void> {
   border: 1px solid var(--color-border);
 }
 
-.head {
-  display: grid;
-  gap: var(--space-md);
+.library-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 
-.title-wrap {
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
+.quick-link {
   font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
-}
-
-.actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-sm);
+.quick-link:hover {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
 }
 
 .filters {
@@ -289,7 +375,7 @@ h2 {
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-button);
 }
 
 .btn:hover {
@@ -316,7 +402,7 @@ h2 {
 }
 
 .btn.small {
-  min-height: 36px;
+  min-height: 28px;
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-caption);
 }
@@ -334,38 +420,40 @@ h2 {
   gap: var(--space-md);
 }
 
-.card {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
+.card-item {
+  min-width: 0;
 }
 
-.card-main {
+.card-link {
   display: grid;
-  gap: var(--space-xs);
-  padding: var(--space-md);
+  gap: var(--space-sm);
   text-decoration: none;
   color: inherit;
 }
 
-.card-main:hover {
-  background: color-mix(in srgb, var(--color-bg-elevated) 92%, var(--color-text-primary));
+.card-title {
+  margin: 0;
+  font-size: var(--font-size-body);
 }
 
-.meta,
-.muted {
+.card-meta {
+  margin: 0;
   font-size: var(--font-size-caption);
   color: var(--color-text-muted);
 }
 
-.card-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  border-top: 1px solid var(--color-border);
+.card-badge {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: var(--font-size-caption);
+  background: color-mix(in srgb, var(--color-surface) 85%, var(--color-accent));
+}
+
+.muted {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
 }
 
 .err {
@@ -373,28 +461,66 @@ h2 {
   font-size: var(--font-size-body);
 }
 
-.modal label {
+.plan-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.recipe-line {
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.plan-modal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.plan-hint {
+  margin: 0;
+}
+
+.plan-modal-body label {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
   font-size: var(--font-size-caption);
 }
-.modal input,
-.modal select {
+
+.plan-modal-body input,
+.plan-modal-body select {
   min-height: var(--input-min-height);
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: inherit;
+}
+
+.toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.toast-body p {
+  margin: 0;
+}
+
+.toast-sub {
+  font-size: var(--font-size-caption);
 }
 
 @media (min-width: 768px) {
   .mf-root {
     padding: var(--space-lg);
-  }
-
-  .actions {
-    grid-template-columns: repeat(3, max-content);
-    justify-content: start;
   }
 
   .filters {
@@ -406,19 +532,9 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .card-actions {
-    grid-template-columns: repeat(3, max-content);
-    justify-content: start;
-  }
-
 }
 
 @media (min-width: 1200px) {
-  .head {
-    grid-template-columns: 1fr auto;
-    align-items: center;
-  }
-
   .cards {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

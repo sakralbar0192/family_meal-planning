@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Ingredient, Recipe } from '@meal/bff-client';
 import { bffErrorMessage } from '@meal/bff-client';
-import { onMounted, reactive, ref, watch } from 'vue';
+import { setShellHeader } from '@meal/shell-chrome';
+import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useBff } from './useBff';
 
@@ -10,6 +11,23 @@ const router = useRouter();
 const bff = useBff();
 
 const isCreate = ref(route.name === 'recipe-new');
+
+const shellTitle = computed(() => (isCreate.value ? 'Новый рецепт' : 'Редактор рецепта'));
+
+function applyRecipeFormShell(): void {
+  setShellHeader({
+    ariaLabel: 'Шапка редактора рецепта',
+    title: shellTitle.value,
+    showAppNav: true,
+    eyebrow: null,
+    leadingRender: null,
+    sublineRender: null,
+    actionsRender: () =>
+      h(RouterLink, { to: '/recipes', class: 'ui-app-header-link--accent' }, () => 'К библиотеке'),
+  });
+}
+
+watch(shellTitle, applyRecipeFormShell);
 const loading = ref(!isCreate.value);
 const saving = ref(false);
 const error = ref('');
@@ -19,6 +37,12 @@ const stepsText = ref('');
 const cookTimeMinutes = ref<number | ''>('');
 const mealCategory = ref('');
 const sourceUrl = ref('');
+const note = ref('');
+const imageUrl = ref('');
+const proteinG = ref<number | ''>('');
+const fatG = ref<number | ''>('');
+const carbsG = ref<number | ''>('');
+const calories = ref<number | ''>('');
 
 type IngredientRow = Ingredient & { toTaste: boolean };
 
@@ -74,6 +98,20 @@ function payloadFromForm(): Record<string, unknown> {
   if (sourceUrl.value.trim()) {
     body.sourceUrl = sourceUrl.value.trim();
   }
+  if (note.value.trim()) {
+    body.note = note.value.trim();
+  }
+  if (imageUrl.value.trim()) {
+    body.imageUrl = imageUrl.value.trim();
+  }
+  const nutrition: Record<string, number> = {};
+  if (proteinG.value !== '') nutrition.proteinG = Number(proteinG.value);
+  if (fatG.value !== '') nutrition.fatG = Number(fatG.value);
+  if (carbsG.value !== '') nutrition.carbsG = Number(carbsG.value);
+  if (calories.value !== '') nutrition.calories = Number(calories.value);
+  if (Object.keys(nutrition).length) {
+    body.nutrition = nutrition;
+  }
   return body;
 }
 
@@ -88,6 +126,12 @@ async function loadEdit(): Promise<void> {
     cookTimeMinutes.value = r.cookTimeMinutes ?? '';
     mealCategory.value = r.mealCategory ?? '';
     sourceUrl.value = r.sourceUrl ?? '';
+    note.value = r.note ?? '';
+    imageUrl.value = r.imageUrl ?? '';
+    proteinG.value = r.nutrition?.proteinG ?? '';
+    fatG.value = r.nutrition?.fatG ?? '';
+    carbsG.value = r.nutrition?.carbsG ?? '';
+    calories.value = r.nutrition?.calories ?? '';
     ingredients.splice(
       0,
       ingredients.length,
@@ -121,15 +165,22 @@ function applyImportDraft(): void {
       sourceUrl?: string | null;
       cookTimeMinutes?: number | null;
       mealCategory?: string | null;
+      imageUrl?: string | null;
+      nutrition?: { proteinG?: number; fatG?: number; carbsG?: number; calories?: number } | null;
     };
     title.value = d.title ?? '';
     stepsText.value = (d.steps ?? []).join('\n');
     cookTimeMinutes.value = d.cookTimeMinutes ?? '';
     mealCategory.value = d.mealCategory ?? '';
     sourceUrl.value = d.sourceUrl ?? '';
+    imageUrl.value = d.imageUrl ?? '';
+    proteinG.value = d.nutrition?.proteinG ?? '';
+    fatG.value = d.nutrition?.fatG ?? '';
+    carbsG.value = d.nutrition?.carbsG ?? '';
+    calories.value = d.nutrition?.calories ?? '';
     const ings = (d.ingredients ?? []).map((x) => ({
       name: x.name ?? '',
-      productCategory: x.productCategory ?? 'other',
+      productCategory: x.productCategory?.trim() || 'other',
       quantity: x.quantity ?? null,
       unit: x.unit ?? '',
       toTaste: (x.quantity == null || x.quantity === undefined) && !x.unit,
@@ -149,6 +200,7 @@ function applyImportDraft(): void {
 
 onMounted(() => {
   isCreate.value = route.name === 'recipe-new';
+  applyRecipeFormShell();
   if (!isCreate.value) {
     void loadEdit();
   } else {
@@ -167,6 +219,12 @@ watch(
       cookTimeMinutes.value = '';
       mealCategory.value = '';
       sourceUrl.value = '';
+      note.value = '';
+      imageUrl.value = '';
+      proteinG.value = '';
+      fatG.value = '';
+      carbsG.value = '';
+      calories.value = '';
       ingredients.splice(0, ingredients.length, {
         name: '',
         productCategory: 'other',
@@ -179,6 +237,7 @@ watch(
     } else {
       void loadEdit();
     }
+    applyRecipeFormShell();
   },
 );
 
@@ -200,9 +259,6 @@ function validateForm(): string | null {
     return 'Добавьте хотя бы один ингредиент с названием.';
   }
   for (const i of named) {
-    if (!i.productCategory.trim()) {
-      return `У ингредиента «${i.name.trim()}» укажите категорию продукта (для списка покупок).`;
-    }
     if (!i.toTaste && i.quantity != null && i.quantity !== '' && Number(i.quantity) < 0) {
       return `Количество для «${i.name.trim()}» не может быть отрицательным.`;
     }
@@ -248,14 +304,6 @@ async function save(): Promise<void> {
 
 <template>
   <section class="mf-root">
-    <header class="head">
-      <RouterLink class="back" to="/recipes">← Назад</RouterLink>
-      <div class="title-wrap">
-        <p class="eyebrow">Recipe editor</p>
-        <h2>{{ isCreate ? 'Новый рецепт' : 'Редактирование' }}</h2>
-      </div>
-    </header>
-
     <p v-if="loading" class="muted">Загрузка…</p>
     <form v-else class="form" @submit.prevent="save">
       <label>
@@ -278,6 +326,39 @@ async function save(): Promise<void> {
         Источник (URL)
         <input v-model="sourceUrl" type="url" />
       </label>
+      <label>
+        URL изображения
+        <input v-model="imageUrl" type="url" placeholder="https://..." />
+      </label>
+      <figure v-if="imageUrl.trim()" class="image-preview">
+        <img :src="imageUrl.trim()" alt="Превью рецепта" />
+      </figure>
+      <label>
+        Заметка
+        <textarea v-model="note" rows="3" placeholder="Комментарий к рецепту"></textarea>
+      </label>
+
+      <fieldset>
+        <legend>Пищевая ценность (на порцию)</legend>
+        <div class="nutrition-row">
+          <label>
+            Белки (г)
+            <input v-model.number="proteinG" type="number" min="0" step="any" />
+          </label>
+          <label>
+            Жиры (г)
+            <input v-model.number="fatG" type="number" min="0" step="any" />
+          </label>
+          <label>
+            Углеводы (г)
+            <input v-model.number="carbsG" type="number" min="0" step="any" />
+          </label>
+          <label>
+            Ккал
+            <input v-model.number="calories" type="number" min="0" step="any" />
+          </label>
+        </div>
+      </fieldset>
 
       <fieldset>
         <legend>Ингредиенты *</legend>
@@ -319,44 +400,6 @@ async function save(): Promise<void> {
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-}
-
-.head {
-  display: grid;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-}
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--touch-target);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  justify-self: start;
-}
-
-.title-wrap {
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
 }
 
 .form {
@@ -426,7 +469,7 @@ legend {
   background: var(--color-accent);
   color: var(--color-text-on-accent);
   font-weight: 600;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-button);
   cursor: pointer;
 }
 
@@ -445,7 +488,7 @@ legend {
 }
 
 .btn.small {
-  min-height: 36px;
+  min-height: 28px;
   padding: 0 var(--space-sm);
   font-size: var(--font-size-caption);
 }
@@ -456,6 +499,24 @@ legend {
 
 .add-btn {
   margin-top: var(--space-xs);
+}
+
+.nutrition-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+}
+
+.image-preview {
+  margin: 0;
+  max-width: 20rem;
+}
+
+.image-preview img {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  object-fit: cover;
 }
 
 .err {
@@ -479,6 +540,10 @@ legend {
 
   .remove-btn {
     justify-self: auto;
+  }
+
+  .nutrition-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

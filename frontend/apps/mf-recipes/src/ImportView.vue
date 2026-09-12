@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { RecipeDraft } from '@meal/bff-client';
 import { bffErrorMessage, isBffHttpError } from '@meal/bff-client';
-import { ref } from 'vue';
+import { setShellHeader } from '@meal/shell-chrome';
+import { h, onMounted, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { useBff } from './useBff';
 
@@ -11,6 +12,19 @@ const router = useRouter();
 const url = ref('');
 const loading = ref(false);
 const error = ref('');
+
+onMounted(() => {
+  setShellHeader({
+    ariaLabel: 'Шапка импорта',
+    eyebrow: 'Import',
+    title: 'Импорт по URL',
+    showAppNav: true,
+    leadingRender: () =>
+      h(RouterLink, { to: '/recipes', class: 'ui-app-header-link ui-app-header-link--back' }, () => '← К библиотеке'),
+    sublineRender: null,
+    actionsRender: null,
+  });
+});
 
 function importErrorMessage(e: unknown): string {
   if (!isBffHttpError(e)) {
@@ -52,19 +66,15 @@ async function submit(): Promise<void> {
 
 <template>
   <section class="mf-root">
-    <RouterLink class="back" to="/recipes">← К библиотеке</RouterLink>
-    <div class="title-wrap">
-      <p class="eyebrow">Import</p>
-      <h2>Импорт по URL</h2>
-    </div>
     <p class="muted">
-      Разрешены только хосты из списка на сервере (см. IMPORT_ALLOWED_HOSTS). Для проверки используйте
-      разрешённый домен, например example.com.
+      Поддерживаются импорт с <strong>eda.ru</strong> (страницы открываются на <strong>eda.rambler.ru</strong>) и <strong>povarenok.ru</strong>.
+      Для локальной проверки можно использовать фикстуру:
+      <code>http://import-fixtures/eda/borsch.html</code>
     </p>
     <form class="form" @submit.prevent="submit">
       <label>
         URL рецепта
-        <input v-model="url" type="url" required placeholder="https://example.com/recipe" />
+        <input v-model="url" type="url" required placeholder="https://eda.ru/recepty/..." />
       </label>
       <p v-if="error" class="err">{{ error }}</p>
       <button type="submit" class="btn" :disabled="loading">
@@ -84,34 +94,6 @@ async function submit(): Promise<void> {
   border: 1px solid var(--color-border);
   display: grid;
   gap: var(--space-sm);
-}
-.back {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--touch-target);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  justify-self: start;
-}
-.title-wrap {
-  display: grid;
-  gap: var(--space-xs);
-}
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
 }
 .form {
   max-width: 44rem;
@@ -141,6 +123,7 @@ input {
   background: var(--color-accent);
   color: var(--color-text-on-accent);
   font-weight: 600;
+  font-size: var(--font-size-button);
   cursor: pointer;
 }
 .btn:hover {

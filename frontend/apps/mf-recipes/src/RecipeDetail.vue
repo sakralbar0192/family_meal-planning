@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { Recipe } from '@meal/bff-client';
 import { bffErrorMessage } from '@meal/bff-client';
-import { onMounted, ref, watch } from 'vue';
+import { setShellHeader } from '@meal/shell-chrome';
+import { UiButton, UiModalShell } from '@meal/ui-kit';
+import { computed, h, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useBff } from './useBff';
 
@@ -14,6 +16,10 @@ const loading = ref(true);
 const error = ref('');
 const monthOpen = ref(false);
 const pickDate = ref('');
+const deleteBusy = ref(false);
+
+const calYear = ref(new Date().getFullYear());
+const calMonth = ref(new Date().getMonth());
 
 function todayISODate(): string {
   const d = new Date();
@@ -22,6 +28,32 @@ function todayISODate(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+const calLabel = computed(() => {
+  const d = new Date(calYear.value, calMonth.value, 1);
+  return d.toLocaleString('ru', { month: 'long', year: 'numeric' });
+});
+
+const calCells = computed(() => {
+  const first = new Date(calYear.value, calMonth.value, 1);
+  const startPad = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(calYear.value, calMonth.value + 1, 0).getDate();
+  const cells: { d: number | null; iso: string | null; inMonth: boolean }[] = [];
+  for (let i = 0; i < startPad; i++) {
+    cells.push({ d: null, iso: null, inMonth: false });
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${calYear.value}-${String(calMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    cells.push({ d: day, iso, inMonth: true });
+  }
+  while (cells.length % 7 !== 0) {
+    cells.push({ d: null, iso: null, inMonth: false });
+  }
+  while (cells.length < 42) {
+    cells.push({ d: null, iso: null, inMonth: false });
+  }
+  return cells;
+});
 
 async function load(): Promise<void> {
   const id = route.params.id as string;
@@ -48,11 +80,43 @@ watch(
 
 function openMonthPicker(): void {
   pickDate.value = todayISODate();
+  const [y, m] = pickDate.value.split('-').map(Number);
+  calYear.value = y;
+  calMonth.value = m - 1;
   monthOpen.value = true;
 }
 
+function closeMonthModal(): void {
+  monthOpen.value = false;
+}
+
+function selectCalendarDay(iso: string | null): void {
+  if (!iso) {
+    return;
+  }
+  pickDate.value = iso;
+}
+
+function prevMonth(): void {
+  if (calMonth.value === 0) {
+    calMonth.value = 11;
+    calYear.value -= 1;
+  } else {
+    calMonth.value -= 1;
+  }
+}
+
+function nextMonth(): void {
+  if (calMonth.value === 11) {
+    calMonth.value = 0;
+    calYear.value += 1;
+  } else {
+    calMonth.value += 1;
+  }
+}
+
 function goPlannerWithDate(): void {
-  if (!recipe.value) {
+  if (!recipe.value || !pickDate.value) {
     return;
   }
   monthOpen.value = false;
@@ -65,6 +129,78 @@ function goPlannerWithDate(): void {
     },
   });
 }
+
+async function deleteRecipe(): Promise<void> {
+  if (!recipe.value || deleteBusy.value) {
+    return;
+  }
+  if (!window.confirm(`Удалить рецепт «${recipe.value.title}»?`)) {
+    return;
+  }
+  deleteBusy.value = true;
+  try {
+    await bff.fetch(`/recipes/${recipe.value.id}`, { method: 'DELETE' });
+    await router.push('/recipes');
+  } catch (e) {
+    error.value = bffErrorMessage(e);
+  } finally {
+    deleteBusy.value = false;
+  }
+}
+
+function applyRecipeDetailShell(): void {
+  if (loading.value) {
+    setShellHeader({
+      ariaLabel: 'Шапка рецепта',
+      title: 'Загрузка…',
+      titleAlign: 'center',
+      showAppNav: true,
+      eyebrow: null,
+      leadingRender: null,
+      sublineRender: null,
+      actionsRender: null,
+    });
+    return;
+  }
+  if (error.value || !recipe.value) {
+    setShellHeader({
+      ariaLabel: 'Шапка рецепта',
+      title: 'Рецепт',
+      titleAlign: 'center',
+      showAppNav: true,
+      eyebrow: null,
+      sublineRender: null,
+      leadingRender: () =>
+        h(RouterLink, { to: '/recipes', class: 'ui-app-header-link--accent' }, () => 'К библиотеке'),
+      actionsRender: null,
+    });
+    return;
+  }
+  setShellHeader({
+    ariaLabel: 'Шапка рецепта',
+    title: recipe.value.title,
+    titleAlign: 'center',
+    showAppNav: true,
+    eyebrow: null,
+    sublineRender: null,
+    leadingRender: () =>
+      h(RouterLink, { to: '/recipes', class: 'ui-app-header-link--accent' }, () => 'К библиотеке'),
+    actionsRender: () =>
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'ui-app-header-link--accent',
+          'data-testid': 'recipe-add-to-plan',
+          onClick: openMonthPicker,
+        },
+        () => 'В план',
+      ),
+  });
+}
+
+watch([recipe, loading, error], applyRecipeDetailShell, { immediate: true });
+
 </script>
 
 <template>
@@ -72,17 +208,21 @@ function goPlannerWithDate(): void {
     <p v-if="loading" class="muted">Загрузка…</p>
     <p v-else-if="error" class="err">{{ error }}</p>
     <template v-else-if="recipe">
-      <header class="head">
-        <RouterLink class="back" to="/recipes">← К библиотеке</RouterLink>
-        <div class="title-wrap">
-          <p class="eyebrow">Recipe</p>
-          <h2>{{ recipe.title }}</h2>
-        </div>
-        <div class="actions">
-          <button type="button" class="btn" @click="openMonthPicker">В план</button>
-          <RouterLink class="btn secondary" :to="`/recipes/${recipe.id}/edit`">Редактировать</RouterLink>
-        </div>
-      </header>
+      <div class="recipe-toolbar" role="toolbar" aria-label="Действия с рецептом">
+        <RouterLink class="toolbar-edit" :to="`/recipes/${recipe.id}/edit`">Редактировать</RouterLink>
+        <UiButton variant="secondary" :disabled="deleteBusy" data-testid="recipe-delete" @click="deleteRecipe">
+          {{ deleteBusy ? '…' : 'Удалить' }}
+        </UiButton>
+      </div>
+
+      <figure v-if="recipe.imageUrl" class="hero-image">
+        <img :src="recipe.imageUrl" :alt="recipe.title" />
+      </figure>
+
+      <section v-if="recipe.note" class="block note-block">
+        <h3>Заметка</h3>
+        <p>{{ recipe.note }}</p>
+      </section>
 
       <section class="meta-row">
         <p v-if="recipe.cookTimeMinutes != null" class="meta-chip">
@@ -122,20 +262,36 @@ function goPlannerWithDate(): void {
       </section>
     </template>
 
-    <div v-if="monthOpen" class="modal-backdrop" role="dialog" aria-modal="true">
-      <div class="modal">
-        <h3>Выберите день</h3>
+    <UiModalShell :open="monthOpen" title="Выберите день" @close="closeMonthModal">
+      <div class="cal-modal-body">
         <p class="muted">Далее откроется планировщик с поиском по названию рецепта.</p>
-        <label>
-          Дата
-          <input v-model="pickDate" type="date" />
-        </label>
-        <div class="modal-actions">
-          <button type="button" class="btn secondary" @click="monthOpen = false">Отмена</button>
-          <button type="button" class="btn" @click="goPlannerWithDate">Перейти в планировщик</button>
+        <div class="cal-nav">
+          <UiButton type="button" variant="secondary" @click="prevMonth">←</UiButton>
+          <strong>{{ calLabel }}</strong>
+          <UiButton type="button" variant="secondary" @click="nextMonth">→</UiButton>
+        </div>
+        <div class="dow">
+          <span v-for="d in ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']" :key="d">{{ d }}</span>
+        </div>
+        <div class="grid">
+          <button
+            v-for="(c, i) in calCells"
+            :key="i"
+            type="button"
+            class="cell"
+            :class="{ selected: c.iso === pickDate }"
+            :disabled="!c.inMonth"
+            @click="selectCalendarDay(c.iso)"
+          >
+            {{ c.d ?? '' }}
+          </button>
         </div>
       </div>
-    </div>
+      <template #actions>
+        <UiButton variant="secondary" @click="closeMonthModal">Закрыть</UiButton>
+        <UiButton @click="goPlannerWithDate">Перейти в планировщик</UiButton>
+      </template>
+    </UiModalShell>
   </section>
 </template>
 
@@ -148,68 +304,43 @@ function goPlannerWithDate(): void {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
-.head {
-  display: grid;
+.recipe-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
-.back {
+.toolbar-edit {
   display: inline-flex;
-  min-height: var(--touch-target);
   align-items: center;
   justify-content: center;
+  min-height: var(--button-min-height);
   padding: 0 var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  justify-self: start;
-}
-.title-wrap {
-  display: grid;
-  gap: var(--space-xs);
-}
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
-}
-.actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-sm);
-}
-.btn {
-  display: inline-flex;
-  min-height: var(--button-min-height);
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-}
-.btn:hover {
-  background: var(--color-accent-hover);
-}
-.btn.secondary {
   background: transparent;
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: var(--font-size-button);
+  text-decoration: none;
 }
-.btn.secondary:hover {
+.toolbar-edit:hover {
   background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
+}
+.hero-image {
+  margin: 0 0 var(--space-md);
+  max-width: 28rem;
+}
+.hero-image img {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  object-fit: cover;
+}
+.note-block p {
+  margin: 0;
+  white-space: pre-wrap;
 }
 .meta-row {
   display: flex;
@@ -241,56 +372,57 @@ h2 {
   font-size: var(--font-size-caption);
 }
 .err {
-  color: #b00020;
+  color: var(--color-error);
 }
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: var(--space-lg);
-}
-.modal {
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  padding: var(--space-lg);
-  max-width: 22rem;
-  width: 100%;
+.cal-modal-body {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
 }
-.modal label {
+.cal-nav {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.cal-nav strong {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+.dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
   font-size: var(--font-size-caption);
 }
-.modal input {
-  min-height: var(--input-min-height);
-  padding: var(--space-sm);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-}
-.modal-actions {
+.grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-sm);
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cell {
+  min-height: max(48px, var(--touch-target));
+  min-width: max(48px, var(--touch-target));
+  aspect-ratio: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  cursor: pointer;
+  font-size: var(--font-size-caption);
+}
+.cell:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.cell.selected:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg));
+  border-color: var(--color-accent);
+  font-weight: 600;
 }
 @media (min-width: 768px) {
   .mf-root {
     padding: var(--space-lg);
-  }
-  .actions {
-    grid-template-columns: repeat(2, max-content);
-    justify-content: start;
-  }
-  .modal-actions {
-    grid-template-columns: repeat(2, max-content);
-    justify-content: end;
   }
 }
 </style>
