@@ -30,7 +30,7 @@ const props = withDefaults(
   background: var(--color-accent);
   color: var(--color-text-on-accent);
   font-weight: 600;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-button);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -66,7 +66,7 @@ const props = withDefaults(
 }
 
 .ui-btn.sm {
-  min-height: 36px;
+  min-height: 28px;
   padding: 0 var(--space-sm);
   font-size: var(--font-size-caption);
 }

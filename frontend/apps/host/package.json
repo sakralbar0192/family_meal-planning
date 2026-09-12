@@ -8,9 +8,12 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.0.18",
     "@meal/bff-client": "*",
+    "@meal/shell-chrome": "*",
     "@meal/ui-kit": "*",
     "@meal/ui-tokens": "*",
+    "msw": "^2.3.1",
     "vue": "^3.4.21",
     "vue-router": "^4.4.0"
   },

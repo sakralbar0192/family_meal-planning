@@ -11,6 +11,7 @@ const stories = [
   '/?path=/story/ui-kit-uiinput--default',
   '/?path=/story/ui-kit-uimodalshell--default',
   '/?path=/story/ui-kit-uirecipecard--default',
+  '/?path=/story/ui-kit-uiappheader--library',
 ];
 
 for (const viewport of viewports) {

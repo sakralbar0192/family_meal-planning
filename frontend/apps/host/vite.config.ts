@@ -9,7 +9,10 @@ const plannerRemote =
 const shoppingRemote =
   process.env.VITE_MF_SHOPPING_URL ?? 'http://127.0.0.1:5176/assets/remoteEntry.js';
 
+const base = process.env.VITE_DEMO_BASE ?? '/';
+
 export default defineConfig({
+  base,
   plugins: [
     vue(),
     federation({
@@ -22,6 +25,7 @@ export default defineConfig({
       shared: {
         vue: { singleton: true, requiredVersion: '^3.4.0' },
         'vue-router': { singleton: true, requiredVersion: '^4.4.0' },
+        '@meal/shell-chrome': { singleton: true, requiredVersion: '0.0.1' },
       },
     }),
   ],
@@ -31,7 +35,7 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    minify: false,
+    minify: 'esbuild',
     cssCodeSplit: false,
   },
 });

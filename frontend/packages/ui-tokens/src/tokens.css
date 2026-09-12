@@ -13,6 +13,7 @@
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
   --color-accent-pressed: #1d4ed8;
+  --color-accent-soft: rgba(37, 99, 235, 0.12);
   --color-success: #16a34a;
   --color-error: #dc2626;
   --color-warning: #d97706;
@@ -34,10 +35,12 @@
   --radius-xl: 24px;
 
   --input-min-height: 44px;
-  --button-min-height: 44px;
+  --button-min-height: 36px;
   --touch-target: 44px;
 
   --font-size-caption: 12px;
+  /** Подписи на кнопках (паритет с DS / Button в Figma, 14px) */
+  --font-size-button: 14px;
   --font-size-body: 15px;
   --font-size-title: 18px;
   --font-size-heading: 24px;
@@ -58,6 +61,7 @@
   --color-accent: #60a5fa;
   --color-accent-hover: #3b82f6;
   --color-accent-pressed: #2563eb;
+  --color-accent-soft: rgba(96, 165, 250, 0.16);
   --color-success: #4ade80;
   --color-error: #f87171;
   --color-warning: #fbbf24;

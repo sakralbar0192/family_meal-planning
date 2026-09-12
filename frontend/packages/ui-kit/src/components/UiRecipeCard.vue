@@ -1,16 +1,23 @@
 <script setup lang="ts">
-const props = defineProps<{
-  title: string;
-  meta?: string;
-  badge?: string;
-}>();
+withDefaults(
+  defineProps<{
+    title?: string;
+    meta?: string;
+    badge?: string;
+  }>(),
+  { title: '' },
+);
 </script>
 
 <template>
   <article class="card">
-    <h4>{{ props.title }}</h4>
-    <p v-if="props.meta" class="meta">{{ props.meta }}</p>
-    <span v-if="props.badge" class="badge">{{ props.badge }}</span>
+    <div class="card-top">
+      <slot name="top">
+        <h4>{{ title }}</h4>
+        <p v-if="meta" class="meta">{{ meta }}</p>
+        <span v-if="badge" class="badge">{{ badge }}</span>
+      </slot>
+    </div>
     <div class="actions">
       <slot name="actions" />
     </div>
@@ -23,8 +30,13 @@ const props = defineProps<{
   border-radius: var(--radius-md);
   background: var(--color-bg-elevated);
   padding: var(--space-md);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-sm);
+}
+
+.card-top {
+  min-width: 0;
 }
 
 h4 {

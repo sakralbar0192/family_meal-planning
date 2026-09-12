@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ inheritAttrs: false });
+
 const model = defineModel<string | number>({ default: '' });
 
 const props = withDefaults(
@@ -20,7 +22,13 @@ const props = withDefaults(
 <template>
   <label class="ui-field">
     <span v-if="props.label">{{ props.label }}</span>
-    <input v-model="model" :type="props.type" :placeholder="props.placeholder" :disabled="props.disabled" />
+    <input
+      v-model="model"
+      v-bind="$attrs"
+      :type="props.type"
+      :placeholder="props.placeholder"
+      :disabled="props.disabled"
+    />
   </label>
 </template>
 
