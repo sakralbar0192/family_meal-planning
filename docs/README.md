@@ -34,4 +34,6 @@
 
 **Правило сопровождения этапов 1–7:** сначала обновляется [design-plan.md](./design-plan.md) (продукт и UX), затем при изменениях в Figma — [technical-spec-figma.md](./technical-spec-figma.md) (факт файла и идентификаторы). Подробнее — абзац «Слои документации» в начале блока этапов в [technical-spec-figma.md](./technical-spec-figma.md).
 
+**Доступ к файлу Figma:** публичная ссылка на макет в репозитории **намеренно не дублируется**; фиксация состояния макета ведётся через MCP **vibma** (аудит → обновление [technical-spec-figma.md](./technical-spec-figma.md)). Источником факта по пикселям, фреймам и прототипу остаётся **сам файл** в Figma; technical-spec — текстовая проекция после аудита.
+
 Записи **ADR** при появлении можно хранить в `docs/adr/` (папка по необходимости); точка входа для решений — [architecture-decision-context.md](./architecture-decision-context.md).
