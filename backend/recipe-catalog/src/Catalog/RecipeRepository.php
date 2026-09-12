@@ -24,12 +24,16 @@ final class RecipeRepository
                 nutrition JSONB NULL,
                 ingredients JSONB NOT NULL,
                 source_url TEXT NULL,
+                note TEXT NULL,
+                image_url TEXT NULL,
                 created_at TIMESTAMPTZ NOT NULL,
                 updated_at TIMESTAMPTZ NOT NULL
             )'
         );
         $this->database->pdo()->exec('CREATE INDEX IF NOT EXISTS catalog_recipes_user_idx ON catalog_recipes (user_id)');
         $this->database->pdo()->exec('CREATE INDEX IF NOT EXISTS catalog_recipes_user_updated_idx ON catalog_recipes (user_id, updated_at DESC)');
+        $this->database->pdo()->exec('ALTER TABLE catalog_recipes ADD COLUMN IF NOT EXISTS note TEXT NULL');
+        $this->database->pdo()->exec('ALTER TABLE catalog_recipes ADD COLUMN IF NOT EXISTS image_url TEXT NULL');
     }
 
     /**
@@ -51,9 +55,9 @@ final class RecipeRepository
 
         $stmt = $this->database->pdo()->prepare(
             'INSERT INTO catalog_recipes (
-                id, user_id, title, steps, cook_time_minutes, meal_category, nutrition, ingredients, source_url, created_at, updated_at
+                id, user_id, title, steps, cook_time_minutes, meal_category, nutrition, ingredients, source_url, note, image_url, created_at, updated_at
             ) VALUES (
-                :id, :user_id, :title, CAST(:steps AS JSONB), :cook_time_minutes, :meal_category, CAST(:nutrition AS JSONB), CAST(:ingredients AS JSONB), :source_url, NOW(), NOW()
+                :id, :user_id, :title, CAST(:steps AS JSONB), :cook_time_minutes, :meal_category, CAST(:nutrition AS JSONB), CAST(:ingredients AS JSONB), :source_url, :note, :image_url, NOW(), NOW()
             )'
         );
         $stmt->execute([
@@ -66,6 +70,8 @@ final class RecipeRepository
             'nutrition' => $nutrition === null ? 'null' : \json_encode($nutrition, JSON_THROW_ON_ERROR),
             'ingredients' => \json_encode($ingredients, JSON_THROW_ON_ERROR),
             'source_url' => $data['sourceUrl'] ?? null,
+            'note' => $data['note'] ?? null,
+            'image_url' => $data['imageUrl'] ?? null,
         ]);
 
         return $this->findById($userId, $id);
@@ -77,7 +83,7 @@ final class RecipeRepository
     public function findById(string $userId, string $recipeId): ?array
     {
         $stmt = $this->database->pdo()->prepare(
-            'SELECT id, title, steps, cook_time_minutes, meal_category, nutrition, ingredients, source_url, created_at, updated_at
+            'SELECT id, title, steps, cook_time_minutes, meal_category, nutrition, ingredients, source_url, note, image_url, created_at, updated_at
              FROM catalog_recipes WHERE id = :id AND user_id = :user_id LIMIT 1'
         );
         $stmt->execute(['id' => $recipeId, 'user_id' => $userId]);
@@ -192,6 +198,14 @@ final class RecipeRepository
             $sets[] = 'source_url = :source_url';
             $params['source_url'] = $patch['sourceUrl'];
         }
+        if (\array_key_exists('note', $patch)) {
+            $sets[] = 'note = :note';
+            $params['note'] = $patch['note'];
+        }
+        if (\array_key_exists('imageUrl', $patch)) {
+            $sets[] = 'image_url = :image_url';
+            $params['image_url'] = $patch['imageUrl'];
+        }
 
         if ($sets === []) {
             return $this->findById($userId, $recipeId);
@@ -279,6 +293,8 @@ final class RecipeRepository
             'nutrition' => $nutrition,
             'ingredients' => $ingredients,
             'sourceUrl' => $row['source_url'],
+            'note' => $row['note'] ?? null,
+            'imageUrl' => $row['image_url'] ?? null,
             'createdAt' => $created,
             'updatedAt' => $updated,
         ];

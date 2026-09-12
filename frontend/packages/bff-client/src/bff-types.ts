@@ -43,6 +43,8 @@ export type Recipe = {
   nutrition?: Nutrition | null;
   ingredients: Ingredient[];
   sourceUrl?: string | null;
+  note?: string | null;
+  imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 };
