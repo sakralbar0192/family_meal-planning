@@ -9,7 +9,8 @@ import {
   type SlotAssignment,
   type WeekPlanResponse,
 } from '@meal/bff-client';
-import { computed, onMounted, ref, watch } from 'vue';
+import { setShellHeader } from '@meal/shell-chrome';
+import { computed, h, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { MEAL_SLOT_LABELS } from './mealSlots';
 import { useBff } from './useBff';
@@ -36,6 +37,9 @@ const buildError = ref('');
 const monthOpen = ref(false);
 const calYear = ref(new Date().getFullYear());
 const calMonth = ref(new Date().getMonth());
+
+const dragRecipeId = ref<string | null>(null);
+const dragOverSlotId = ref<string | null>(null);
 
 function todayISODate(): string {
   const d = new Date();
@@ -135,6 +139,7 @@ async function loadWeek(): Promise<void> {
 }
 
 onMounted(() => {
+  applyPlannerShell();
   sidebarSearch.value = (route.query.recipeSearch as string) || '';
   monthOpen.value = route.query.pickDay === '1';
   void loadWeek();
@@ -216,10 +221,84 @@ async function addRecipeToActiveSlot(recipeId: string): Promise<void> {
     slotError.value = 'Выберите слот.';
     return;
   }
-  if (slot.recipeIds.includes(recipeId)) {
+  await moveRecipeToSlot(recipeId, slot.slotId);
+}
+
+function findSlotForRecipe(recipeId: string): SlotAssignment | null {
+  if (!week.value) {
+    return null;
+  }
+  for (const d of week.value.days) {
+    for (const s of d.slots) {
+      if (s.recipeIds.includes(recipeId)) {
+        return s;
+      }
+    }
+  }
+  return null;
+}
+
+async function moveRecipeToSlot(recipeId: string, targetSlotId: string): Promise<void> {
+  const target = findSlot(targetSlotId);
+  if (!target) {
     return;
   }
-  await patchSlot(slot, [...slot.recipeIds, recipeId]);
+  const source = findSlotForRecipe(recipeId);
+  if (source?.slotId === targetSlotId) {
+    return;
+  }
+  if (source) {
+    await patchSlot(
+      source,
+      source.recipeIds.filter((id) => id !== recipeId),
+    );
+    const refreshed = findSlot(targetSlotId);
+    if (refreshed && !refreshed.recipeIds.includes(recipeId)) {
+      await patchSlot(refreshed, [...refreshed.recipeIds, recipeId]);
+    }
+    return;
+  }
+  if (!target.recipeIds.includes(recipeId)) {
+    await patchSlot(target, [...target.recipeIds, recipeId]);
+  }
+}
+
+function onRecipeDragStart(event: DragEvent, recipeId: string): void {
+  dragRecipeId.value = recipeId;
+  event.dataTransfer?.setData('text/recipe-id', recipeId);
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+  }
+}
+
+function onSlotDragOver(event: DragEvent, slotId: string): void {
+  event.preventDefault();
+  dragOverSlotId.value = slotId;
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+}
+
+function onSlotDragLeave(slotId: string): void {
+  if (dragOverSlotId.value === slotId) {
+    dragOverSlotId.value = null;
+  }
+}
+
+async function onSlotDrop(event: DragEvent, slot: SlotAssignment): Promise<void> {
+  event.preventDefault();
+  dragOverSlotId.value = null;
+  const recipeId = event.dataTransfer?.getData('text/recipe-id') || dragRecipeId.value;
+  dragRecipeId.value = null;
+  if (!recipeId) {
+    return;
+  }
+  await moveRecipeToSlot(recipeId, slot.slotId);
+}
+
+function onDragEnd(): void {
+  dragRecipeId.value = null;
+  dragOverSlotId.value = null;
 }
 
 const sidebarRecipes = ref<RecipeSummary[]>([]);
@@ -359,23 +438,58 @@ function nextMonth(): void {
     calMonth.value += 1;
   }
 }
+
+function formatDateRu(iso: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+const plannerFocusLabel = computed(() => formatDateRu(anchorDate.value));
+
+function applyPlannerShell(): void {
+  setShellHeader({
+    ariaLabel: 'Шапка планировщика',
+    title: 'Планировщик',
+    titleAlign: 'center',
+    showAppNav: true,
+    eyebrow: null,
+    sublineRender: null,
+    leadingRender: () =>
+      h(RouterLink, { to: '/recipes', class: 'ui-app-header-link--accent' }, () => 'К библиотеке'),
+    actionsRender: () =>
+      h('div', { class: 'planner-header-actions' }, [
+        h(
+          'span',
+          { class: 'ui-app-header-meta', 'data-testid': 'planner-week-range' },
+          plannerFocusLabel.value,
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'ui-app-header-link',
+            'data-testid': 'planner-header-shopping-list',
+            onClick: openCalendar,
+          },
+          () => 'Список покупок',
+        ),
+      ]),
+  });
+}
+
+watch(plannerFocusLabel, applyPlannerShell);
 </script>
 
 <template>
   <section class="mf-root">
-    <header class="head">
-      <div class="title-wrap">
-        <p class="eyebrow">Planner</p>
-        <h2>Планировщик</h2>
-      </div>
-      <div class="row">
-        <UiButton type="button" variant="secondary" @click="shiftWeek(-7)">← Неделя</UiButton>
-        <span class="muted" data-testid="planner-week-range">{{ week?.weekStart }} — {{ week?.weekEnd }}</span>
-        <UiButton type="button" variant="secondary" @click="shiftWeek(7)">Неделя →</UiButton>
-        <UiButton type="button" variant="secondary" @click="openCalendar">Календарь месяца</UiButton>
-        <RouterLink class="btn secondary" to="/recipes">Библиотека</RouterLink>
-      </div>
-    </header>
+    <div class="planner-week-bar">
+      <UiButton type="button" variant="secondary" @click="shiftWeek(-7)">← Неделя</UiButton>
+      <UiButton type="button" variant="secondary" @click="shiftWeek(7)">Неделя →</UiButton>
+      <UiButton type="button" variant="secondary" @click="openCalendar">Календарь месяца</UiButton>
+    </div>
 
     <section class="shop-panel">
       <h3>Список покупок на период</h3>
@@ -409,6 +523,9 @@ function nextMonth(): void {
     <div v-else-if="week" class="layout">
       <aside class="sidebar">
         <h3>Рецепты рядом</h3>
+        <p class="add-hint">
+          На компьютере перетащите карточку в слот. На телефоне выберите слот и нажмите «В слот».
+        </p>
         <input v-model="sidebarSearch" type="search" placeholder="Поиск" />
         <label class="slot-pick">
           Слот для добавления
@@ -417,9 +534,20 @@ function nextMonth(): void {
           </select>
         </label>
         <ul class="rec-list" data-testid="planner-sidebar-recipes">
-          <li v-for="r in sidebarRecipes" :key="r.id" :data-recipe-id="r.id" data-testid="planner-sidebar-recipe-row">
+          <li
+            v-for="r in sidebarRecipes"
+            :key="r.id"
+            :data-recipe-id="r.id"
+            data-testid="planner-sidebar-recipe-row"
+            draggable="true"
+            class="draggable-recipe"
+            @dragstart="onRecipeDragStart($event, r.id)"
+            @dragend="onDragEnd"
+          >
             <span>{{ r.title }}</span>
-            <UiButton type="button" size="sm" @click="addRecipeToActiveSlot(r.id)">В слот</UiButton>
+            <UiButton type="button" size="sm" data-testid="planner-add-to-slot" @click="addRecipeToActiveSlot(r.id)">
+              В слот
+            </UiButton>
           </li>
         </ul>
       </aside>
@@ -432,10 +560,31 @@ function nextMonth(): void {
           :data-focus="day.date === String(route.query.focusDate || '')"
         >
           <h4>{{ day.date }}</h4>
-          <div v-for="slot in day.slots" :key="slot.slotId" class="slot">
+          <div
+            v-for="slot in day.slots"
+            :key="slot.slotId"
+            class="slot"
+            :class="{
+              'slot--drag-over': dragOverSlotId === slot.slotId,
+              'slot--active': activeSlotId === slot.slotId,
+            }"
+            data-testid="planner-slot-drop"
+            :data-slot-id="slot.slotId"
+            @click="activeSlotId = slot.slotId"
+            @dragover="onSlotDragOver($event, slot.slotId)"
+            @dragleave="onSlotDragLeave(slot.slotId)"
+            @drop="onSlotDrop($event, slot)"
+          >
             <div class="slot-head">{{ MEAL_SLOT_LABELS[slot.slotCode] }}</div>
             <ul class="slot-recipes">
-              <li v-for="rid in slot.recipeIds" :key="rid">
+              <li
+                v-for="rid in slot.recipeIds"
+                :key="rid"
+                draggable="true"
+                class="draggable-recipe"
+                @dragstart="onRecipeDragStart($event, rid)"
+                @dragend="onDragEnd"
+              >
                 {{ titleForRecipe(rid) }}
                 <button
                   type="button"
@@ -491,31 +640,14 @@ function nextMonth(): void {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
-.head {
-  display: grid;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-}
-.title-wrap {
-  display: grid;
-  gap: var(--space-xs);
-}
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
-}
-.row {
+
+.planner-week-bar {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
+
 .shop-panel {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -605,6 +737,30 @@ h2 {
 }
 .slot {
   margin-bottom: var(--space-sm);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs);
+  transition: background 0.15s ease, outline 0.15s ease;
+}
+.slot--drag-over {
+  background: var(--color-accent-soft);
+  outline: 2px dashed var(--color-accent);
+  outline-offset: 2px;
+}
+.slot--active {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+.add-hint {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: 1.4;
+}
+.draggable-recipe {
+  cursor: grab;
+}
+.draggable-recipe:active {
+  cursor: grabbing;
 }
 .slot-head {
   font-weight: 600;
@@ -624,8 +780,8 @@ h2 {
   font-size: var(--font-size-caption);
 }
 .link-remove {
-  min-height: 28px;
-  min-width: 28px;
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
@@ -633,36 +789,6 @@ h2 {
   cursor: pointer;
   font-size: 1.2rem;
   line-height: 1;
-}
-.btn {
-  min-height: var(--button-min-height);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn:hover {
-  background: var(--color-accent-hover);
-}
-.btn.secondary {
-  background: transparent;
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-}
-.btn.secondary:hover {
-  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-text-primary));
-}
-.btn.small {
-  min-height: 36px;
-  padding: 0 var(--space-sm);
-  font-size: var(--font-size-caption);
 }
 .muted {
   color: var(--color-text-muted);
@@ -710,7 +836,8 @@ h2 {
   margin-bottom: var(--space-md);
 }
 .cell {
-  min-height: 40px;
+  min-height: max(48px, var(--touch-target));
+  min-width: max(48px, var(--touch-target));
   aspect-ratio: 1;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -725,7 +852,7 @@ h2 {
   .mf-root {
     padding: var(--space-lg);
   }
-  .row {
+  .planner-week-bar {
     grid-template-columns: repeat(3, max-content);
     align-items: center;
   }
@@ -739,13 +866,6 @@ h2 {
   }
 }
 @media (min-width: 1200px) {
-  .head {
-    grid-template-columns: 1fr auto;
-    align-items: center;
-  }
-  .row {
-    grid-template-columns: repeat(5, max-content);
-  }
   .shop-row {
     grid-template-columns: repeat(5, max-content);
   }

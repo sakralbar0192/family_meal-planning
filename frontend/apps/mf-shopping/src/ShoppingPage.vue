@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { bffErrorFromResponse, bffErrorMessage, type ShoppingLine, type ShoppingListDetail } from '@meal/bff-client';
-import { computed, onMounted, ref, watch } from 'vue';
+import { setShellHeader } from '@meal/shell-chrome';
+import { computed, h, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useBff } from './useBff';
 import { UiButton } from '@meal/ui-kit';
@@ -44,11 +45,40 @@ async function load(): Promise<void> {
     error.value = bffErrorMessage(e);
   } finally {
     loading.value = false;
+    applyShoppingShell();
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  applyShoppingShell();
+  void load();
+});
 watch(listId, () => load());
+
+function formatShoppingPeriod(from: string, to: string): string {
+  const d1 = new Date(`${from}T12:00:00`);
+  const d2 = new Date(`${to}T12:00:00`);
+  const y1 = d1.getFullYear();
+  const y2 = d2.getFullYear();
+  const m1 = d1.getMonth();
+  const m2 = d2.getMonth();
+  if (y1 === y2 && m1 === m2) {
+    const monthYear = d1.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+    return `Период: ${d1.getDate()}—${d2.getDate()} ${monthYear}`;
+  }
+  if (y1 === y2) {
+    const a = d1.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    const b = d2.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    return `Период: ${a} — ${b}`;
+  }
+  const a = d1.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const b = d2.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `Период: ${a} — ${b}`;
+}
+
+const shoppingPeriodLabel = computed(() =>
+  detail.value ? formatShoppingPeriod(detail.value.from, detail.value.to) : '',
+);
 
 const grouped = computed(() => {
   const lines = detail.value?.lines ?? [];
@@ -152,22 +182,31 @@ async function exportText(): Promise<void> {
 function goPlanner(): void {
   void router.push({ path: '/planner' });
 }
+
+function applyShoppingShell(): void {
+  setShellHeader({
+    ariaLabel: 'Шапка списка покупок',
+    title: 'Список покупок',
+    showAppNav: true,
+    eyebrow: null,
+    leadingRender: null,
+    actionsRender: () =>
+      h(RouterLink, { to: '/planner', class: 'ui-app-header-link--accent' }, () => 'К планировщику'),
+    sublineRender: detail.value
+      ? () =>
+          h('div', { class: 'shopping-period-line', 'data-testid': 'shopping-period' }, [
+            h('span', null, shoppingPeriodLabel.value),
+            h(RouterLink, { to: '/planner', class: 'ui-app-header-link--accent' }, () => 'Изменить период'),
+          ])
+      : null,
+  });
+}
+
+watch([detail, shoppingPeriodLabel], applyShoppingShell, { deep: true });
 </script>
 
 <template>
   <section class="mf-root">
-    <header class="head">
-      <RouterLink class="back" to="/planner">← Планировщик</RouterLink>
-      <div class="title-wrap">
-        <p class="eyebrow">Shopping list</p>
-        <h2>Список покупок</h2>
-      </div>
-      <p v-if="detail" class="period" data-testid="shopping-period">
-        Период: {{ detail.from }} — {{ detail.to }}
-        <UiButton type="button" class="linkish" variant="secondary" size="sm" @click="goPlanner">Изменить период</UiButton>
-      </p>
-    </header>
-
     <p v-if="loading" class="muted">Загрузка…</p>
     <p v-else-if="error" class="err">{{ error }}</p>
 
@@ -225,57 +264,6 @@ function goPlanner(): void {
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-}
-.head {
-  display: grid;
-  gap: var(--space-sm);
-}
-.back {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--touch-target);
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  justify-self: start;
-}
-.title-wrap {
-  display: grid;
-  gap: var(--space-xs);
-}
-.eyebrow {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-h2 {
-  margin: 0;
-  font-size: var(--font-size-title);
-}
-.period {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-sm);
-  margin: 0;
-  font-size: var(--font-size-caption);
-  color: var(--color-text-secondary);
-}
-.linkish {
-  min-height: var(--touch-target);
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0 var(--space-sm);
-  font: inherit;
-  color: var(--color-text-primary);
-  cursor: pointer;
 }
 .toolbar {
   margin: var(--space-md) 0;
@@ -348,7 +336,7 @@ h2 {
   background: var(--color-accent);
   color: var(--color-text-on-accent);
   font-weight: 600;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-button);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -373,7 +361,7 @@ h2 {
   background: color-mix(in srgb, var(--color-error) 85%, black);
 }
 .btn.small {
-  min-height: 36px;
+  min-height: 28px;
   padding: 0 var(--space-sm);
   font-size: var(--font-size-caption);
   justify-self: start;
