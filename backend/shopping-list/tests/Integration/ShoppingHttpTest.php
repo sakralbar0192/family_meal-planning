@@ -39,4 +39,29 @@ final class ShoppingHttpTest extends WebTestCase
         $this->client->request('GET', '/api/shopping/v1/health');
         self::assertResponseStatusCodeSame(200);
     }
+
+    public function testBuildEmptyPeriodWhenUpstreamsUnavailable(): void
+    {
+        $headers = [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_INTERNAL_AUTH' => 'dev-internal-token',
+            'HTTP_X_USER_ID' => 'a0000000-0000-4000-8000-000000000001',
+        ];
+        $this->client->request(
+            'POST',
+            '/api/shopping/v1/lists/build',
+            server: $headers,
+            content: '{"from":"2026-03-01","to":"2026-03-07"}'
+        );
+        self::assertResponseStatusCodeSame(200);
+        $body = \json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertTrue($body['empty']);
+        self::assertArrayHasKey('listId', $body);
+
+        $this->client->request('GET', '/api/shopping/v1/lists/'.$body['listId'], server: $headers);
+        self::assertResponseStatusCodeSame(200);
+        $detail = \json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertTrue($detail['empty']);
+        self::assertSame([], $detail['lines']);
+    }
 }
