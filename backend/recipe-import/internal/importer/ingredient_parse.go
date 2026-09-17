@@ -25,48 +25,23 @@ func parseIngredientLine(raw string) map[string]any {
 		if name == "" {
 			name = line
 		}
-		return map[string]any{
-			"name":            name,
-			"quantity":        nil,
-			"unit":            "",
-			"productCategory": "",
-		}
+		return ingredientDraft(name, nil, "")
 	}
 	if m := ingQtyUnitName.FindStringSubmatch(line); len(m) == 4 {
 		qty := parseFloat(m[1])
-		return map[string]any{
-			"name":            strings.TrimSpace(m[3]),
-			"quantity":        qty,
-			"unit":            strings.TrimSpace(m[2]),
-			"productCategory": "",
-		}
+		return ingredientDraft(strings.TrimSpace(m[3]), qty, strings.TrimSpace(m[2]))
 	}
 	if m := ingNameDashQty.FindStringSubmatch(line); len(m) == 4 {
 		qty := parseFloat(m[2])
-		return map[string]any{
-			"name":            strings.TrimSpace(m[1]),
-			"quantity":        qty,
-			"unit":            strings.TrimSpace(m[3]),
-			"productCategory": "",
-		}
+		return ingredientDraft(strings.TrimSpace(m[1]), qty, strings.TrimSpace(m[3]))
 	}
 	if m := ingNameCommaQty.FindStringSubmatch(line); len(m) == 4 {
 		unit := strings.TrimSpace(m[3])
 		if unit != "" && len([]rune(unit)) <= 40 {
-			return map[string]any{
-				"name":            strings.TrimSpace(m[1]),
-				"quantity":        parseFloat(m[2]),
-				"unit":            unit,
-				"productCategory": "",
-			}
+			return ingredientDraft(strings.TrimSpace(m[1]), parseFloat(m[2]), unit)
 		}
 	}
-	return map[string]any{
-		"name":            line,
-		"quantity":        nil,
-		"unit":            "",
-		"productCategory": "",
-	}
+	return ingredientDraft(line, nil, "")
 }
 
 func parseFloat(s string) any {

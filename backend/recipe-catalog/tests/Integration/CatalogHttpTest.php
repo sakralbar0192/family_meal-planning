@@ -84,6 +84,25 @@ final class CatalogHttpTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testCreateDefaultsEmptyProductCategory(): void
+    {
+        $headers = [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_INTERNAL_AUTH' => 'dev-internal-token',
+            'HTTP_X_USER_ID' => 'a0000000-0000-4000-8000-000000000002',
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/catalog/v1/recipes',
+            server: $headers,
+            content: '{"title":"Imported","ingredients":[{"name":"Вода","quantity":500,"unit":"мл"}]}'
+        );
+        self::assertResponseStatusCodeSame(201);
+        $created = \json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('прочее', $created['ingredients'][0]['productCategory']);
+    }
+
     public function testHealth(): void
     {
         $this->client->request('GET', '/api/catalog/v1/health');

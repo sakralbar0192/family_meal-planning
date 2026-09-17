@@ -233,19 +233,12 @@ func ingredientsFrom(v any) []map[string]any {
 			if name == "" {
 				continue
 			}
-			m := map[string]any{
-				"name":            name,
-				"quantity":        nil,
-				"unit":            "",
-				"productCategory": "",
-			}
+			qty := any(nil)
 			if val := ing["value"]; val != nil {
-				m["quantity"] = val
+				qty = val
 			}
-			if u := stringField(ing, "unitCode"); u != "" {
-				m["unit"] = u
-			}
-			out = append(out, m)
+			unit := stringField(ing, "unitCode")
+			out = append(out, ingredientDraft(name, qty, unit))
 		}
 	}
 	return out

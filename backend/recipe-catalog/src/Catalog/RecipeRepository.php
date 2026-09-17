@@ -43,6 +43,9 @@ final class RecipeRepository
      */
     public function create(string $userId, array $data): ?array
     {
+        if (isset($data['ingredients']) && \is_array($data['ingredients'])) {
+            $data['ingredients'] = $this->withDefaultProductCategories($data['ingredients']);
+        }
         $err = $this->validateCreate($data);
         if ($err !== null) {
             return null;
@@ -187,6 +190,7 @@ final class RecipeRepository
             if (!\is_array($ing)) {
                 throw new \InvalidArgumentException('ingredients must be an array.');
             }
+            $ing = $this->withDefaultProductCategories($ing);
             $err = $this->validateIngredients($ing);
             if ($err !== null) {
                 throw new \InvalidArgumentException('Invalid ingredients: '.$err);
@@ -240,6 +244,26 @@ final class RecipeRepository
         }
 
         return $this->validateIngredients($data['ingredients']);
+    }
+
+    /**
+     * @param list<mixed> $ingredients
+     *
+     * @return list<mixed>
+     */
+    private function withDefaultProductCategories(array $ingredients): array
+    {
+        foreach ($ingredients as $i => $ing) {
+            if (!\is_array($ing)) {
+                continue;
+            }
+            $cat = $ing['productCategory'] ?? '';
+            if (!\is_string($cat) || \trim($cat) === '') {
+                $ingredients[$i]['productCategory'] = 'прочее';
+            }
+        }
+
+        return $ingredients;
     }
 
     /**

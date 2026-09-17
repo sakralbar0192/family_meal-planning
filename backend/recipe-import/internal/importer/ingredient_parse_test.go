@@ -11,6 +11,9 @@ func TestIngredientParseQtyUnitName(t *testing.T) {
 	if !ok || q != 500 {
 		t.Fatalf("quantity: %v", m["quantity"])
 	}
+	if m["productCategory"] != CategoryMeat {
+		t.Fatalf("productCategory: %v", m["productCategory"])
+	}
 }
 
 func TestIngredientParseNameCommaQty(t *testing.T) {

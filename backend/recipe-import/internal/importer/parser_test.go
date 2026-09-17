@@ -76,6 +76,12 @@ func TestExtractDraftEdaFixture(t *testing.T) {
 	if d.Nutrition == nil {
 		t.Fatal("expected nutrition")
 	}
+	for _, ing := range d.Ingredients {
+		cat, _ := ing["productCategory"].(string)
+		if cat == "" {
+			t.Fatalf("expected productCategory on %v", ing["name"])
+		}
+	}
 }
 
 func TestExtractDraftPovarenokFixture(t *testing.T) {
