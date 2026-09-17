@@ -62,11 +62,28 @@ test.describe('UC-2 / UC-3 план → список покупок', () => {
     await expect(page.getByTestId('shopping-line').filter({ hasText: 'Мука' })).toBeVisible({
       timeout: 15_000,
     });
+    await expect(page.getByTestId('shopping-group').filter({ hasText: 'Бакалея' })).toBeVisible();
 
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.getByTestId('shopping-copy-list').click();
     const clip = await page.evaluate(() => navigator.clipboard.readText());
     expect(clip).toContain('Мука');
+
+    const flourLine = page.getByTestId('shopping-line').filter({ hasText: 'Мука' });
+    await flourLine.getByTestId('shopping-line-purchased').click();
+    await expect(flourLine.locator('.done')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByTestId('shopping-manual-name').fill('Лимон');
+    await page.getByTestId('shopping-manual-add').click();
+    await expect(page.getByTestId('shopping-line').filter({ hasText: 'Лимон' })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    page.once('dialog', (d) => d.accept());
+    await page.getByTestId('shopping-line').filter({ hasText: 'Лимон' }).getByTestId('shopping-line-delete').click();
+    await expect(page.getByTestId('shopping-line').filter({ hasText: 'Лимон' })).toHaveCount(0, {
+      timeout: 15_000,
+    });
   });
 
   test('UC-3 альтернатива: пустой список без назначений в плане', async ({ page, request }) => {

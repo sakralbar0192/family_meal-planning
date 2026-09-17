@@ -32,4 +32,41 @@ test.describe('auth UI', () => {
     await expect(page).toHaveURL('/');
     await expect(page.getByTestId('session-banner')).toBeVisible({ timeout: 20_000 });
   });
+
+  test('вход существующего пользователя', async ({ page, request }) => {
+    const healthy = await isBffHealthy(request);
+    const requireBff = requiresBff();
+    if (!healthy && requireBff) {
+      expect(healthy, 'В режиме full-stack BFF должен отвечать на /health').toBe(true);
+      return;
+    }
+    if (!healthy) {
+      test.skip(
+        true,
+        'BFF недоступен. Поднимите docker compose и задайте E2E_BFF_BASE_URL при необходимости.',
+      );
+      return;
+    }
+
+    const email = `e2e_login_${Date.now()}@example.com`;
+    const password = 'e2e-secret12';
+
+    await page.goto('/register');
+    await page.getByTestId('register-email').fill(email);
+    await page.getByTestId('register-password').fill(password);
+    await page.getByTestId('register-submit').click();
+    await expect(page).toHaveURL('/');
+    await expect(page.getByTestId('session-banner')).toBeVisible({ timeout: 20_000 });
+
+    await page.goto('/profile');
+    await page.getByTestId('profile-logout').click();
+    await expect(page).toHaveURL(/\/login/);
+
+    await page.getByTestId('login-email').fill(email);
+    await page.getByTestId('login-password').fill(password);
+    await page.getByTestId('login-submit').click();
+
+    await expect(page).toHaveURL('/');
+    await expect(page.getByTestId('session-banner')).toBeVisible({ timeout: 20_000 });
+  });
 });

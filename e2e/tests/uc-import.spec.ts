@@ -36,4 +36,30 @@ test.describe('UC-1 импорт рецепта', () => {
     await page.goto('/recipes');
     await expect(page.getByText('Борщ классический')).toBeVisible({ timeout: 15_000 });
   });
+
+  test('отклоняет URL с неразрешённого домена', async ({ page, request }) => {
+    const healthy = await isBffHealthy(request);
+    const requireBff = requiresBff();
+    if (!healthy && requireBff) {
+      expect(healthy, 'В режиме full-stack BFF должен отвечать на /health').toBe(true);
+      return;
+    }
+    if (!healthy) {
+      test.skip(true, 'BFF недоступен. Поднимите docker compose и превью фронта.');
+      return;
+    }
+
+    const email = `e2e_import_deny_${Date.now()}@example.com`;
+    const password = 'e2e-secret12';
+
+    await registerAndLandHome(page, email, password);
+    await page.goto('/recipes/import');
+
+    await page.getByPlaceholder('https://eda.ru/recepty/').fill('https://example.com/recipe');
+    await page.getByRole('button', { name: 'Импортировать' }).click();
+
+    await expect(page.getByTestId('import-error')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('import-error')).toContainText(/не в списке разрешённых/i);
+    await expect(page).toHaveURL(/\/recipes\/import/);
+  });
 });
