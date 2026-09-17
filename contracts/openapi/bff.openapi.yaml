@@ -381,6 +381,8 @@ paths:
           $ref: '#/components/responses/Error'
         '401':
           $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
   /shopping/lists/{listId}:
     get:
       tags: [Shopping]

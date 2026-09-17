@@ -297,7 +297,6 @@ final class ShoppingListRepository
      */
     public function build(string $userId, string $from, string $to, UpstreamClient $up, Request $req): array
     {
-        $replaced = $this->deleteListForPeriod($userId, $from, $to);
         $assignments = $up->fetchAssignments($req, $userId, $from, $to);
         $recipes = [];
         $seen = [];
@@ -314,6 +313,7 @@ final class ShoppingListRepository
         }
 
         $lines = $assignments === [] ? [] : $this->aggregateSnapshot($assignments, $recipes);
+        $replaced = $this->deleteListForPeriod($userId, $from, $to);
         $listId = $this->insertList($userId, $from, $to);
         if ($lines !== []) {
             $this->insertSnapshotLines($listId, $lines);

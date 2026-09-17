@@ -62,7 +62,7 @@
 
 | Метод | Путь | Описание |
 |-------|------|----------|
-| POST | `/bff/v1/shopping/build` | Тело `{ "from": "date", "to": "date" }` → формирование списка |
+| POST | `/bff/v1/shopping/build` | Тело `{ "from": "date", "to": "date" }` → формирование списка. Если план или каталог недоступны — **503** `UPSTREAM_UNAVAILABLE` (список не создаётся). Пустой план за период — **200** с `empty: true`. |
 | GET | `/bff/v1/shopping/lists/{id}` | Получить список со строками и флагом `empty` (нет строк снимка) |
 | POST | `/bff/v1/shopping/lists/{id}/lines` | Добавить ручную позицию (UC-3) |
 | PATCH | `/bff/v1/shopping/lists/{id}/lines/{lineId}` | Отметка «куплено», правки |

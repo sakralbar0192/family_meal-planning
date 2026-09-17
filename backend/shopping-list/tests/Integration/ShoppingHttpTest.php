@@ -40,7 +40,7 @@ final class ShoppingHttpTest extends WebTestCase
         self::assertResponseStatusCodeSame(200);
     }
 
-    public function testBuildEmptyPeriodWhenUpstreamsUnavailable(): void
+    public function testBuildFailsWhenUpstreamsUnavailable(): void
     {
         $headers = [
             'CONTENT_TYPE' => 'application/json',
@@ -53,15 +53,8 @@ final class ShoppingHttpTest extends WebTestCase
             server: $headers,
             content: '{"from":"2026-03-01","to":"2026-03-07"}'
         );
-        self::assertResponseStatusCodeSame(200);
+        self::assertResponseStatusCodeSame(503);
         $body = \json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertTrue($body['empty']);
-        self::assertArrayHasKey('listId', $body);
-
-        $this->client->request('GET', '/api/shopping/v1/lists/'.$body['listId'], server: $headers);
-        self::assertResponseStatusCodeSame(200);
-        $detail = \json_decode((string) $this->client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        self::assertTrue($detail['empty']);
-        self::assertSame([], $detail['lines']);
+        self::assertSame('UPSTREAM_UNAVAILABLE', $body['code']);
     }
 }

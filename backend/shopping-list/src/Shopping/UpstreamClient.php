@@ -3,8 +3,8 @@
 namespace App\Shopping;
 
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class UpstreamClient
 {
@@ -24,13 +24,16 @@ final class UpstreamClient
         $url = \rtrim($this->planningBaseUri, '/').'/assignments/plan?'.\http_build_query(['from' => $from, 'to' => $to]);
         try {
             $resp = $this->httpClient->request('GET', $url, ['headers' => $this->headers($incoming, $userId)]);
-            if ($resp->getStatusCode() !== 200) {
-                return [];
+            $status = $resp->getStatusCode();
+            if ($status !== 200) {
+                throw new UpstreamUnavailableException('meal-planning HTTP '.$status);
             }
             /** @var array{items?: list<array<string, mixed>>} $data */
             $data = $resp->toArray(false);
-        } catch (TransportExceptionInterface) {
-            return [];
+        } catch (UpstreamUnavailableException $e) {
+            throw $e;
+        } catch (TransportExceptionInterface $e) {
+            throw new UpstreamUnavailableException('meal-planning unreachable', 0, $e);
         }
 
         $out = [];
@@ -56,13 +59,19 @@ final class UpstreamClient
         $url = \rtrim($this->catalogBaseUri, '/').'/recipes/'.\rawurlencode($recipeId);
         try {
             $resp = $this->httpClient->request('GET', $url, ['headers' => $this->headers($incoming, $userId)]);
-            if ($resp->getStatusCode() !== 200) {
+            $status = $resp->getStatusCode();
+            if ($status === 404) {
                 return null;
+            }
+            if ($status !== 200) {
+                throw new UpstreamUnavailableException('recipe-catalog HTTP '.$status);
             }
 
             return $resp->toArray(false);
-        } catch (TransportExceptionInterface) {
-            return null;
+        } catch (UpstreamUnavailableException $e) {
+            throw $e;
+        } catch (TransportExceptionInterface $e) {
+            throw new UpstreamUnavailableException('recipe-catalog unreachable', 0, $e);
         }
     }
 

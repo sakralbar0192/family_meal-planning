@@ -6,6 +6,7 @@ use App\Shopping\ErrorResponseFactory;
 use App\Shopping\ShoppingListRepository;
 use App\Shopping\TrustedUserSubscriber;
 use App\Shopping\UpstreamClient;
+use App\Shopping\UpstreamUnavailableException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +33,15 @@ final class ShoppingListController
             return ErrorResponseFactory::create('VALIDATION_ERROR', 'Invalid from/to dates.', Response::HTTP_BAD_REQUEST);
         }
 
-        $result = $this->lists->build($userId, $from, $to, $this->upstream, $request);
+        try {
+            $result = $this->lists->build($userId, $from, $to, $this->upstream, $request);
+        } catch (UpstreamUnavailableException $e) {
+            return ErrorResponseFactory::create(
+                'UPSTREAM_UNAVAILABLE',
+                'Не удалось собрать список: план или каталог рецептов недоступны.',
+                Response::HTTP_SERVICE_UNAVAILABLE,
+            );
+        }
 
         return new JsonResponse($result);
     }
