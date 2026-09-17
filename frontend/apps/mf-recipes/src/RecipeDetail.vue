@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Recipe } from '@meal/bff-client';
-import { bffErrorMessage } from '@meal/bff-client';
+import { bffErrorMessage, productCategoryLabel } from '@meal/bff-client';
 import { setShellHeader } from '@meal/shell-chrome';
 import { UiButton, UiModalShell } from '@meal/ui-kit';
 import { computed, h, onMounted, ref, watch } from 'vue';
@@ -249,7 +249,7 @@ watch([recipe, loading, error], applyRecipeDetailShell, { immediate: true });
             {{ ing.name }}
             <template v-if="ing.quantity != null"> — {{ ing.quantity }} {{ ing.unit ?? '' }}</template>
             <template v-else> — по вкусу</template>
-            <span class="muted"> ({{ ing.productCategory }})</span>
+            <span class="muted"> ({{ productCategoryLabel(ing.productCategory) }})</span>
           </li>
         </ul>
       </section>

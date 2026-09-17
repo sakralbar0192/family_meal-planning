@@ -76,7 +76,7 @@ async function submit(): Promise<void> {
         URL рецепта
         <input v-model="url" type="url" required placeholder="https://eda.ru/recepty/..." />
       </label>
-      <p v-if="error" class="err">{{ error }}</p>
+      <p v-if="error" class="err" data-testid="import-error">{{ error }}</p>
       <button type="submit" class="btn" :disabled="loading">
         {{ loading ? 'Импорт…' : 'Импортировать' }}
       </button>

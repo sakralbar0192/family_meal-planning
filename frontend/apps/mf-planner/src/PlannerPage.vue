@@ -27,6 +27,8 @@ const slotError = ref('');
 
 const recipeTitles = ref<Record<string, string>>({});
 const sidebarSearch = ref('');
+const sidebarMealCategory = ref('');
+const sidebarMaxCook = ref<number | ''>('');
 const activeSlotId = ref('');
 
 const shoppingFrom = ref('');
@@ -158,6 +160,10 @@ watch(
 
 watch(sidebarSearch, () => {
   void loadWeek();
+  void loadSidebarRecipes();
+});
+
+watch([sidebarMealCategory, sidebarMaxCook], () => {
   void loadSidebarRecipes();
 });
 
@@ -308,6 +314,8 @@ async function loadSidebarRecipes(): Promise<void> {
     const res = await bff.json<RecipeListResponse>(
       bffPath('/recipes', {
         q: sidebarSearch.value || undefined,
+        mealCategory: sidebarMealCategory.value || undefined,
+        maxCookTimeMinutes: sidebarMaxCook.value === '' ? undefined : sidebarMaxCook.value,
         limit: 50,
         offset: 0,
       }),
@@ -399,6 +407,17 @@ const calCells = computed(() => {
   return cells;
 });
 
+function goShoppingPanel(): void {
+  const panel = document.querySelector('[data-testid="planner-shop-panel"]');
+  if (panel instanceof HTMLElement) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  const from = document.querySelector('[data-testid="planner-shopping-date-from"]');
+  if (from instanceof HTMLInputElement) {
+    from.focus();
+  }
+}
+
 function openCalendar(): void {
   const [y, m] = anchorDate.value.split('-').map(Number);
   calYear.value = y;
@@ -472,7 +491,7 @@ function applyPlannerShell(): void {
             type: 'button',
             class: 'ui-app-header-link',
             'data-testid': 'planner-header-shopping-list',
-            onClick: openCalendar,
+            onClick: goShoppingPanel,
           },
           () => 'Список покупок',
         ),
@@ -491,7 +510,7 @@ watch(plannerFocusLabel, applyPlannerShell);
       <UiButton type="button" variant="secondary" @click="openCalendar">Календарь месяца</UiButton>
     </div>
 
-    <section class="shop-panel">
+    <section class="shop-panel" data-testid="planner-shop-panel">
       <h3>Список покупок на период</h3>
       <div class="shop-row">
         <label>
@@ -526,7 +545,26 @@ watch(plannerFocusLabel, applyPlannerShell);
         <p class="add-hint">
           На компьютере перетащите карточку в слот. На телефоне выберите слот и нажмите «В слот».
         </p>
-        <input v-model="sidebarSearch" type="search" placeholder="Поиск" />
+        <input v-model="sidebarSearch" type="search" placeholder="Поиск" data-testid="planner-sidebar-search" />
+        <label class="slot-pick">
+          Приём пищи
+          <input
+            v-model="sidebarMealCategory"
+            type="text"
+            placeholder="Категория приёма пищи"
+            data-testid="planner-sidebar-meal-category"
+          />
+        </label>
+        <label class="slot-pick">
+          Время готовки, мин (не больше)
+          <input
+            v-model.number="sidebarMaxCook"
+            type="number"
+            min="1"
+            placeholder="Например 30"
+            data-testid="planner-sidebar-max-cook"
+          />
+        </label>
         <label class="slot-pick">
           Слот для добавления
           <select v-model="activeSlotId" data-testid="planner-active-slot">

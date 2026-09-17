@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import type { Ingredient, Recipe } from '@meal/bff-client';
-import { bffErrorMessage } from '@meal/bff-client';
+import {
+  PRODUCT_CATEGORY_OPTIONS,
+  PRODUCT_CATEGORY_OTHER,
+  bffErrorMessage,
+  normalizeProductCategory,
+  type Ingredient,
+  type Recipe,
+} from '@meal/bff-client';
 import { setShellHeader } from '@meal/shell-chrome';
 import { computed, h, onMounted, reactive, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
@@ -47,11 +53,11 @@ const calories = ref<number | ''>('');
 type IngredientRow = Ingredient & { toTaste: boolean };
 
 const ingredients = reactive<IngredientRow[]>([
-  { name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false },
+  { name: '', productCategory: PRODUCT_CATEGORY_OTHER, quantity: null, unit: '', toTaste: false },
 ]);
 
 function addIngredient(): void {
-  ingredients.push({ name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false });
+  ingredients.push({ name: '', productCategory: PRODUCT_CATEGORY_OTHER, quantity: null, unit: '', toTaste: false });
 }
 
 function removeIngredient(i: number): void {
@@ -79,7 +85,7 @@ function payloadFromForm(): Record<string, unknown> {
     .filter((i) => i.name.trim() !== '')
     .map((i) => ({
       name: i.name.trim(),
-      productCategory: (i.productCategory.trim() || 'other').toLowerCase(),
+      productCategory: normalizeProductCategory(i.productCategory),
       quantity:
         i.toTaste || i.quantity == null || i.quantity === '' ? null : Number(i.quantity),
       unit: i.toTaste ? undefined : i.unit?.trim() || undefined,
@@ -138,9 +144,10 @@ async function loadEdit(): Promise<void> {
       ...(r.ingredients.length
         ? r.ingredients.map((x) => ({
             ...x,
+            productCategory: normalizeProductCategory(x.productCategory),
             toTaste: x.quantity == null && x.unit == null,
           }))
-        : [{ name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false }]),
+        : [{ name: '', productCategory: PRODUCT_CATEGORY_OTHER, quantity: null, unit: '', toTaste: false }]),
     );
   } catch (e) {
     error.value = bffErrorMessage(e);
@@ -180,7 +187,7 @@ function applyImportDraft(): void {
     calories.value = d.nutrition?.calories ?? '';
     const ings = (d.ingredients ?? []).map((x) => ({
       name: x.name ?? '',
-      productCategory: x.productCategory?.trim() || 'other',
+      productCategory: normalizeProductCategory(x.productCategory),
       quantity: x.quantity ?? null,
       unit: x.unit ?? '',
       toTaste: (x.quantity == null || x.quantity === undefined) && !x.unit,
@@ -190,7 +197,7 @@ function applyImportDraft(): void {
       ingredients.length,
       ...(ings.length
         ? ings
-        : [{ name: '', productCategory: 'other', quantity: null, unit: '', toTaste: false }]),
+        : [{ name: '', productCategory: PRODUCT_CATEGORY_OTHER, quantity: null, unit: '', toTaste: false }]),
     );
     sessionStorage.removeItem('meal_import_draft');
   } catch {
@@ -227,7 +234,7 @@ watch(
       calories.value = '';
       ingredients.splice(0, ingredients.length, {
         name: '',
-        productCategory: 'other',
+        productCategory: PRODUCT_CATEGORY_OTHER,
         quantity: null,
         unit: '',
         toTaste: false,
@@ -376,7 +383,18 @@ async function save(): Promise<void> {
             :disabled="ing.toTaste"
           />
           <input v-model="ing.unit" placeholder="Ед." :disabled="ing.toTaste" />
-          <input v-model="ing.productCategory" placeholder="Категория продукта" />
+          <select v-model="ing.productCategory" aria-label="Категория продукта">
+            <option v-for="o in PRODUCT_CATEGORY_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</option>
+            <option
+              v-if="
+                ing.productCategory &&
+                !PRODUCT_CATEGORY_OPTIONS.some((o) => o.value === ing.productCategory)
+              "
+              :value="ing.productCategory"
+            >
+              {{ ing.productCategory }}
+            </option>
+          </select>
           <button type="button" class="btn small secondary remove-btn" @click="removeIngredient(i)">
             Удалить
           </button>
@@ -415,6 +433,7 @@ label {
   font-size: var(--font-size-caption);
 }
 input,
+select,
 textarea {
   min-height: var(--input-min-height);
   padding: var(--space-sm);

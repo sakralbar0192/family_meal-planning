@@ -23,7 +23,7 @@ function applyHomeShell(): void {
         h(
           'p',
           { class: 'shell-host-welcome__lead' },
-          'Планируйте питание на неделю, собирайте рецепты и формируйте список покупок.',
+          'Планируйте питание на любой срок, собирайте рецепты и формируйте список покупок.',
         ),
         h('p', { class: 'shell-host-welcome__bff' }, bffStatus.value),
       ]),

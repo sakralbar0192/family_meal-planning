@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { bffErrorFromResponse, bffErrorMessage, type ShoppingLine, type ShoppingListDetail } from '@meal/bff-client';
+import {
+  bffErrorFromResponse,
+  bffErrorMessage,
+  normalizeProductCategory,
+  productCategoryLabel,
+  type ShoppingLine,
+  type ShoppingListDetail,
+} from '@meal/bff-client';
 import { setShellHeader } from '@meal/shell-chrome';
 import { computed, h, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
@@ -84,22 +91,22 @@ const grouped = computed(() => {
   const lines = detail.value?.lines ?? [];
   const m = new Map<string, ShoppingLine[]>();
   for (const line of lines) {
-    const key = line.productCategory?.trim() || '_other';
+    const key = normalizeProductCategory(line.productCategory);
     if (!m.has(key)) {
       m.set(key, []);
     }
     m.get(key)!.push(line);
   }
   const keys = [...m.keys()].sort((a, b) => {
-    if (a === '_other') {
+    if (a === 'прочее') {
       return 1;
     }
-    if (b === '_other') {
+    if (b === 'прочее') {
       return -1;
     }
-    return a.localeCompare(b);
+    return productCategoryLabel(a).localeCompare(productCategoryLabel(b), 'ru');
   });
-  return keys.map((k) => ({ category: k === '_other' ? 'Без категории' : k, lines: m.get(k)! }));
+  return keys.map((k) => ({ category: productCategoryLabel(k), lines: m.get(k)! }));
 });
 
 async function togglePurchased(line: ShoppingLine): Promise<void> {
@@ -228,6 +235,7 @@ watch([detail, shoppingPeriodLabel], applyShoppingShell, { deep: true });
             <label class="check">
               <input
                 type="checkbox"
+                data-testid="shopping-line-purchased"
                 :checked="line.purchased"
                 @change="togglePurchased(line)"
               />
@@ -237,7 +245,9 @@ watch([detail, shoppingPeriodLabel], applyShoppingShell, { deep: true });
               {{ line.quantity }} {{ line.unit ?? '' }}
             </span>
             <span v-if="line.mergeNote" class="muted">{{ line.mergeNote }}</span>
-            <UiButton type="button" variant="danger" size="sm" @click="removeLine(line)">Удалить</UiButton>
+            <UiButton type="button" variant="danger" size="sm" data-testid="shopping-line-delete" @click="removeLine(line)">
+              Удалить
+            </UiButton>
           </li>
         </ul>
       </div>
@@ -245,11 +255,11 @@ watch([detail, shoppingPeriodLabel], applyShoppingShell, { deep: true });
       <section class="manual">
         <h3>Свой продукт</h3>
         <div class="manual-row">
-          <input v-model="manualName" placeholder="Название" />
+          <input v-model="manualName" placeholder="Название" data-testid="shopping-manual-name" />
           <input v-model.number="manualQty" type="number" step="any" placeholder="Кол-во" />
           <input v-model="manualUnit" placeholder="Ед." />
           <input v-model="manualCat" placeholder="Категория" />
-          <UiButton type="button" @click="addManual">Добавить</UiButton>
+          <UiButton type="button" data-testid="shopping-manual-add" @click="addManual">Добавить</UiButton>
         </div>
       </section>
     </template>

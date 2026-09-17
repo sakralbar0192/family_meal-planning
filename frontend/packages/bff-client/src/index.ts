@@ -8,6 +8,7 @@ import { bffErrorFromResponse } from './errors';
 export * from './bff-types';
 export * from './errors';
 export * from './default-client';
+export * from './product-categories';
 
 export type BffClient = {
   fetch(path: string, init?: RequestInit): Promise<Response>;
